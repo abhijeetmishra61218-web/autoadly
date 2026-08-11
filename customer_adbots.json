@@ -1,0 +1,77 @@
+{
+  "7859617687": [
+    {
+      "name": "Hi",
+      "ad_account_id": 6,
+      "bio": "testing"
+    }
+  ],
+  "7530034609": [
+    {
+      "name": "AutoAdly",
+      "ad_account_id": 5
+    },
+    {
+      "name": "AutoAdly",
+      "ad_account_id": 4
+    },
+    {
+      "name": null,
+      "ad_account_id": null,
+      "bio": null,
+      "photo_file_id": null
+    },
+    {
+      "name": null,
+      "ad_account_id": null,
+      "bio": null,
+      "photo_file_id": null
+    },
+    {
+      "name": null,
+      "ad_account_id": null,
+      "bio": null,
+      "photo_file_id": null
+    }
+  ],
+  "6684244590": [
+    {
+      "name": "https://t.me/c/4474803280/2",
+      "ad_account_id": 7,
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
+      "photo_file_id": null
+    },
+    {
+      "name": "Autoadly",
+      "ad_account_id": 8,
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
+      "photo_file_id": null
+    },
+    {
+      "name": "AutoAdly",
+      "ad_account_id": 9,
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
+      "photo_file_id": null
+    },
+    {
+      "name": null,
+      "ad_account_id": null,
+      "bio": null,
+      "photo_file_id": null
+    },
+    {
+      "name": null,
+      "ad_account_id": null,
+      "bio": null,
+      "photo_file_id": null
+    }
+  ],
+  "8897259158": [
+    {
+      "name": null,
+      "ad_account_id": null,
+      "bio": null,
+      "photo_file_id": null
+    }
+  ]
+}

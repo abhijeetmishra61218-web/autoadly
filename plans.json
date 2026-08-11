@@ -1,0 +1,66 @@
+[
+  {
+    "id": "starter",
+    "name": "Starter",
+    "price": "$15/month",
+    "benefits": [
+      "1 AdBot Account",
+      "Run 1 Active Advertisement at a time",
+      "Can Add Custom Target Groups/Forums",
+      "Free AdBot Account Replacement",
+      "Fast & Reliable Performance",
+      "Priority Customer Support"
+    ],
+    "image": "AgACAgUAAxkBAAOzamriopsAAQ-mIbxfdL4gR8YKdViiAAIeE2sb71BYVyHssrKPRZHWAQADAgADeQADPQQ",
+    "emoji_id": 5453902265922376865,
+    "max_ad_accounts": 1
+  },
+  {
+    "id": "standard",
+    "name": "Standard",
+    "price": "$25/month",
+    "benefits": [
+      "2 AdBot Account",
+      "Run 2 Active Advertisement at a time",
+      "Can Add Custom Target Groups/Forums",
+      "Free AdBot Account Replacement",
+      "Fast & Reliable Performance",
+      "Priority Customer Support"
+    ],
+    "image": "AgACAgUAAxkBAAO3amritkcG-0Lox8t2tb_gilR1sqUAAh8TaxvvUFhXQ-G_OnjPjGQBAAMCAAN5AAM9BA",
+    "emoji_id": 5447203607294265305,
+    "max_ad_accounts": 2
+  },
+  {
+    "id": "pro",
+    "name": "Pro",
+    "price": "$50/month",
+    "benefits": [
+      "4 AdBot Account",
+      "Run 4 Active Advertisement at a time",
+      "Can Add Custom Target Groups/Forums",
+      "Free AdBot Account Replacement",
+      "Fast & Reliable Performance",
+      "Priority Customer Support"
+    ],
+    "image": "AgACAgUAAxkBAAO-amri16i_gx9meMRe1gkbn8HiVmgAAiATaxvvUFhXSKz77M59cMEBAAMCAAN5AAM9BA",
+    "emoji_id": 5440539497383087970,
+    "max_ad_accounts": 4
+  },
+  {
+    "id": "elite",
+    "name": "Elite",
+    "price": "$70/month",
+    "benefits": [
+      "5 AdBot Account",
+      "Run 5 Active Advertisement at a time",
+      "Can Add Custom Target Groups/Forums",
+      "Free AdBot Account Replacement",
+      "Fast & Reliable Performance",
+      "Priority Customer Support"
+    ],
+    "image": "AgACAgUAAxkBAAPGamri_lKEQcoFQ-2N0cDcYUC13p8AAiITaxvvUFhXsxAKSiEB2RgBAAMCAAN5AAM9BA",
+    "emoji_id": 5427168083074628963,
+    "max_ad_accounts": 5
+  }
+]

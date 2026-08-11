@@ -1,0 +1,22 @@
+{
+  "7530034609": [
+    {
+      "index": 0,
+      "ad_config": null,
+      "created_at": 1785751213.0933938
+    }
+  ],
+  "7859617687": [
+    {
+      "index": 0,
+      "ad_config": {
+        "source_chat_id": -1004499707005,
+        "source_message_id": 2,
+        "category": "Telegram",
+        "marketplace_list_id": 2,
+        "source_username": "testingetetdt"
+      },
+      "created_at": 1786110699.815155
+    }
+  ]
+}

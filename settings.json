@@ -1,0 +1,15 @@
+{
+  "welcome_text": "<b>Welcome {name} to AutoAdly</b>\n\nAutoAdly — Your Business Growth Partner.\nPromote your business across hundreds of Telegram marketplaces automatically—even while you sleep. Simple, reliable, and effortless.",
+  "welcome_image": "AgACAgUAAxkBAAMfampf6JJww9FZ6emMMvOAClS4D0QAAhQUaxvvUFBX4JBrNWqrn5IBAAMCAAN5AAM9BA",
+  "terms_text": "AutoAdly – Terms & Conditions \n\n• By using AutoAdly, you agree to these Terms & Conditions.\n\n• All payments are final. Refunds are not available.\n\n• We provide free replacements for Telegram AdBot accounts if they are banned. If your accounts are getting banned repeatedly, please check your marketplace links and remove any custom addlist, as it is one of the most common causes of spam restrictions.\n\n• Customers are responsible for using AutoAdly in compliance with Telegram's Terms of Service.\n\n• AutoAdly is not responsible for account or bot restrictions caused by misuse, spam, or violations of Telegram's policies.\n\n• Any attempt to abuse, exploit, or interfere with our service may result in immediate suspension without compensation.\n\n• Service availability may occasionally be affected by Telegram updates, maintenance, or unexpected technical issues.\n\n• We reserve the right to refuse service to anyone who violates these Terms & Conditions.\n\n• These Terms & Conditions may be updated at any time without prior notice.",
+  "button_labels": {
+    "buy": "Buy Ad Bot",
+    "support": "Support",
+    "terms": "T&Cs"
+  },
+  "plans_page_image": "AgACAgUAAxkBAAOtamrify2UsK6nYZdejz0K_NdBYTEAAh0TaxvvUFhXAepRPlVExMUBAAMCAAN5AAM9BA",
+  "plans_page_text": "</b> choose a plan : </b>",
+  "marketplace_folder_link": "https://t.me/addlist/J0PEsr8J9NJjYWQ1",
+  "dashboard_image": "AgACAgUAAxkBAAIEFGptkNbUNBdhgB7BLN3hw8JN_78ZAAJnE2sbEEpxV58e6qd4OgQfAQADAgADeQADPQQ",
+  "master_account_id": 1
+}

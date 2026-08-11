@@ -1,0 +1,108 @@
+{
+  "cryptos": [
+    {
+      "id": "btc",
+      "name": "BTC",
+      "chain": "btc",
+      "address": "bc1qn262wey25nv44a4qpqwc943ctr0vnhjf7940lw",
+      "coingecko_id": "bitcoin",
+      "decimals": 8,
+      "enabled": true,
+      "min_conf": 3,
+      "is_usd_stable": false,
+      "token_contract": null,
+      "emoji_id": "5829938927703691622"
+    },
+    {
+      "id": "ltc",
+      "name": "LTC",
+      "chain": "ltc",
+      "address": "ltc1q33sfs0cs899je6cxp9ym6vl0fayk5lhtua6pdv",
+      "coingecko_id": "litecoin",
+      "decimals": 8,
+      "enabled": true,
+      "min_conf": 2,
+      "is_usd_stable": false,
+      "token_contract": null,
+      "emoji_id": "5829979991886011025"
+    },
+    {
+      "id": "sol",
+      "name": "SOL",
+      "chain": "sol",
+      "address": "ESjhf9RYRMiP6UDMprmV3F75tumZbmZ1Wni9YgtSF7Qe",
+      "coingecko_id": "solana",
+      "decimals": 9,
+      "enabled": true,
+      "min_conf": 1,
+      "is_usd_stable": false,
+      "token_contract": null,
+      "emoji_id": "5829944446736667124"
+    },
+    {
+      "id": "usdt_trc20",
+      "name": "USDT(Trc20)",
+      "chain": "trc20",
+      "address": "TRxZCUTwdW1L5x8qMAKGXWae6U9DStXY9D",
+      "coingecko_id": "tether",
+      "decimals": 6,
+      "enabled": true,
+      "min_conf": 20,
+      "is_usd_stable": true,
+      "token_contract": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "emoji_id": "5832692572971077565"
+    },
+    {
+      "id": "usdt_bep20",
+      "name": "USDT(Bep20)",
+      "chain": "bep20",
+      "address": "0xaE1AA60f31aCcf68B5705A001bf4937aec241fDd",
+      "coingecko_id": "tether",
+      "decimals": 18,
+      "enabled": true,
+      "min_conf": 12,
+      "is_usd_stable": true,
+      "token_contract": "0x55d398326f99059fF775485246999027B3197955",
+      "emoji_id": "5829978819359937589"
+    },
+    {
+      "id": "eth",
+      "name": "ETH",
+      "chain": "eth",
+      "address": "0xA8c89EE85B2EDf60dffe226B4454B6ceCED47d61",
+      "coingecko_id": "ethereum",
+      "decimals": 18,
+      "enabled": true,
+      "min_conf": 12,
+      "is_usd_stable": false,
+      "token_contract": null,
+      "emoji_id": "5830292326202741807"
+    },
+    {
+      "id": "usdc_erc20",
+      "name": "USDC(Erc20)",
+      "chain": "erc20_usdc",
+      "address": "0xA8c89EE85B2EDf60dffe226B4454B6ceCED47d61",
+      "coingecko_id": "usd-coin",
+      "decimals": 6,
+      "enabled": true,
+      "min_conf": 12,
+      "is_usd_stable": true,
+      "token_contract": "0xA0b86991c6218b36C1D19D4a2e9Eb0cE3606eB48",
+      "emoji_id": "5829943407354582226"
+    },
+    {
+      "id": "usdc_sol",
+      "name": "USDC(Sol)",
+      "chain": "spl_usdc",
+      "address": "ESjhf9RYRMiP6UDMprmV3F75tumZbmZ1Wni9YgtSF7Qe",
+      "coingecko_id": "usd-coin",
+      "decimals": 6,
+      "enabled": true,
+      "min_conf": 1,
+      "is_usd_stable": true,
+      "token_contract": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "emoji_id": "5829943407354582226"
+    }
+  ]
+}

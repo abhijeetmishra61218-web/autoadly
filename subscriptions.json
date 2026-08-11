@@ -1,0 +1,39 @@
+{
+  "7859617687": {
+    "plan_id": "starter",
+    "purchase_date": 1785561334.296118,
+    "expiry": 1795849918.089982,
+    "months": 1
+  },
+  "6684244590": {
+    "plan_id": "elite",
+    "purchase_date": 1785622272.4966059,
+    "expiry": 1790685288.938554,
+    "months": 1,
+    "notified_soon": false,
+    "reclaimed": false
+  },
+  "7530034609": {
+    "plan_id": "elite",
+    "purchase_date": 1785566597.720133,
+    "expiry": 1790749899.662669,
+    "months": 1
+  },
+  "6229897436": {
+    "plan_id": "standard",
+    "purchase_date": 1785715313.442561,
+    "expiry": 1788307313.442561,
+    "months": 1,
+    "notified_soon": false,
+    "reclaimed": true
+  },
+  "8897259158": {
+    "plan_id": "starter",
+    "purchase_date": 1786381241.7070441,
+    "expiry": 1786467641.7070441,
+    "months": null,
+    "days": 1,
+    "notified_soon": true,
+    "reclaimed": true
+  }
+}
