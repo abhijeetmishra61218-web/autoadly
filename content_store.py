@@ -1,4 +1,6 @@
 # content_store.py
+
+
 import json
 import os
 
@@ -275,6 +277,43 @@ def set_slot_photo(user_id, index, photo_file_id):
     if key in data and 0 <= index < len(data[key]):
         data[key][index]["photo_file_id"] = photo_file_id
         save_customer_adbots(data)
+def set_slot_cached_photo(user_id, index, photo_bytes):
+    """Persist a raw Telegram profile photo for this slot."""
+    cache_dir = os.path.join(BASE_DIR, "profile_photo_cache")
+    os.makedirs(cache_dir, exist_ok=True)
+
+    path = os.path.join(
+        cache_dir,
+        f"{int(user_id)}_{int(index)}.jpg",
+    )
+
+    if photo_bytes:
+        with open(path, "wb") as f:
+            f.write(photo_bytes)
+    else:
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+
+
+def get_slot_cached_photo(user_id, index):
+    """Return the cached raw profile photo, if available."""
+    path = os.path.join(
+        BASE_DIR,
+        "profile_photo_cache",
+        f"{int(user_id)}_{int(index)}.jpg",
+    )
+
+    if not os.path.exists(path):
+        return None
+
+    try:
+        with open(path, "rb") as f:
+            return f.read()
+    except OSError as e:
+        print(f"[content_store] cached photo read failed: {e}")
+        return None
 
 def slot_display_name(slot, index):
     base = slot.get("name") or "Adbot"
