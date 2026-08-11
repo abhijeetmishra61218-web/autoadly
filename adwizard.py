@@ -11,10 +11,11 @@ import raw_api
 import content_store as store
 import database as db
 import engine
+from flow_state import FlowBucket, cancel_user
 
 router = Router()
 
-WIZARD_PENDING = {}
+WIZARD_PENDING = FlowBucket("adwizard")
 
 CATEGORIES = ["Telegram", "Discord", "Instagram", "Facebook", "WhatsApp", "TikTok", "X (Twitter)", "YouTube", "Exchange", "Others"]
 
@@ -52,6 +53,51 @@ async def cb_set_ad_start(callback: CallbackQuery):
         [[{"text": "Cancel", "callback_data": "myadbot:open"}]],
     )
     await callback.answer()
+
+
+@router.message(Command("set"))
+async def cmd_set(message: Message):
+    user_id = message.from_user.id
+
+    # Starting /set must invalidate every previous unfinished flow.
+    cancel_user(user_id)
+
+    # Reuse the existing premium-user restriction.
+    try:
+        import myadbot
+
+        if not myadbot.has_active_subscription(user_id):
+            await message.reply(
+                "You don't have an active subscription yet. "
+                "Tap Buy Ad Bot to get started."
+            )
+            return
+    except Exception as e:
+        print(f"[cmd_set] premium check failed for user={user_id}: {e}")
+        await message.reply(
+            "I couldn't verify your subscription right now. Please try again."
+        )
+        return
+
+    adbots = store.get_customer_adbots(user_id)
+
+    if not adbots:
+        await message.reply(
+            "You don't have an Ad Bot Account yet."
+        )
+        return
+
+    # Start the same existing wizard state used by the normal flow.
+    WIZARD_PENDING[user_id] = {
+        "step": "await_link",
+    }
+
+    await raw_api.send_message(
+        message.chat.id,
+        "Send the advertisement message link.",
+        [[{"text": "Cancel", "callback_data": "myadbot:open"}]],
+    )
+
 
 @router.message(F.text, ~F.text.startswith("/"), F.from_user.id.in_(WIZARD_PENDING.keys()))
 async def on_wizard_text(message: Message):

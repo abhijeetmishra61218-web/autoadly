@@ -12,10 +12,11 @@ import database as db
 import engine
 import config
 import profile_updater as pu
+from flow_state import FlowBucket, cancel_user
 
 router = Router()
 
-EDIT_PENDING = {}
+EDIT_PENDING = FlowBucket("myad")
 
 def has_active_subscription(user_id):
     sub = store.get_subscription(user_id)
@@ -182,6 +183,7 @@ async def cb_subscription(callback: CallbackQuery):
 
 @router.callback_query(F.data == "myad:manage")
 async def cb_manage(callback: CallbackQuery):
+    cancel_user(callback.from_user.id)
     user_id = callback.from_user.id
     adbots = store.get_customer_adbots(user_id)
     rows = []
@@ -388,6 +390,7 @@ async def on_edit_photo(message: Message):
 
 @router.callback_query(F.data == "myad:logs")
 async def cb_logs(callback: CallbackQuery):
+    cancel_user(callback.from_user.id)
     user_id = callback.from_user.id
     adbots = store.get_customer_adbots(user_id)
     if not adbots:
@@ -416,6 +419,7 @@ async def cb_dashboard_logs_account(callback: CallbackQuery):
 
 @router.callback_query(F.data == "myad:live")
 async def cb_live_ads(callback: CallbackQuery):
+    cancel_user(callback.from_user.id)
     user_id = callback.from_user.id
     adbots = store.get_customer_adbots(user_id)
     if not adbots:
@@ -564,6 +568,7 @@ async def _logs_for_account(chat_id, msg_id, ad_account_id, send_new=False):
 
 @router.message(Command("logs"))
 async def cmd_logs(message: Message):
+    cancel_user(message.from_user.id)
     user_id = message.from_user.id
     adbots = store.get_customer_adbots(user_id)
     if not adbots:
@@ -588,6 +593,7 @@ async def cb_quicklogs_account(callback: CallbackQuery):
 
 @router.message(Command("ad"))
 async def cmd_ad(message: Message):
+    cancel_user(message.from_user.id)
     user_id = message.from_user.id
     parts = message.text.split(maxsplit=1)
     if len(parts) < 2:
@@ -644,6 +650,7 @@ async def cmd_ad(message: Message):
 
 @router.message(Command("manage"))
 async def cmd_manage_shortcut(message: Message):
+    cancel_user(message.from_user.id)
     user_id = message.from_user.id
     adbots = store.get_customer_adbots(user_id)
     if not adbots:
@@ -657,6 +664,7 @@ async def cmd_manage_shortcut(message: Message):
 
 @router.message(Command("live"))
 async def cmd_live_shortcut(message: Message):
+    cancel_user(message.from_user.id)
     user_id = message.from_user.id
     adbots = store.get_customer_adbots(user_id)
     if not adbots:

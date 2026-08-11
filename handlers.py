@@ -6,13 +6,14 @@ import asyncio
 import join_engine
 
 import raw_api
+from flow_state import FlowBucket, cancel_user
 import content_store as store
 from config import OWNER_USERNAME
 
 router = Router()
 
 # in-memory pending-edit state per admin user_id: {user_id: {"action": "edit_welcome_text"}}
-PENDING = {}
+PENDING = FlowBucket("admin")
 
 def _fmt_welcome(user):
     settings = store.load_settings()
@@ -102,6 +103,7 @@ def _edit_menu_rows():
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
+    cancel_user(message.from_user.id)
     store.register_user(message.from_user.id, message.from_user.username)
     store.ensure_owner(message.from_user.id)  # first-ever /start becomes owner
     settings = store.load_settings()
@@ -151,6 +153,7 @@ async def cmd_getemojiid(message: Message):
 
 @router.callback_query(F.data == "start:home")
 async def cb_home(callback: CallbackQuery):
+    cancel_user(callback.from_user.id)
     settings = store.load_settings()
     await raw_api.render(
         callback.message.chat.id, callback.message.message_id,
