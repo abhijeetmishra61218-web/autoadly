@@ -577,12 +577,7 @@ async def cb_logs(callback: CallbackQuery):
         await _logs_for_account(callback.message.chat.id, callback.message.message_id, adbots[0]["ad_account_id"])
         await callback.answer()
         return
-    rows = []
-    for i, bot in enumerate(adbots):
-        label = store.slot_display_name(bot, i)
-        if bot.get("ad_account_id") is None:
-            label += " (pending)"
-        rows.append([{"text": label, "callback_data": f"dashlogs:acct:{i}"}])
+    rows = [[{"text": store.slot_display_name(bot, i), "callback_data": f"dashlogs:acct:{i}"}] for i, bot in enumerate(adbots)]
     rows.append([{"text": "Back", "callback_data": "myadbot:open"}])
     await raw_api.render(callback.message.chat.id, callback.message.message_id, "<b>Advertisement Logs</b>\n\nWhich Ad Bot Account's logs do you want to see?", rows)
     await callback.answer()
@@ -592,15 +587,8 @@ async def cb_dashboard_logs_account(callback: CallbackQuery):
     user_id = callback.from_user.id
     idx = int(callback.data.split(":", 2)[2])
     adbots = store.get_customer_adbots(user_id)
-    if idx >= len(adbots):
+    if idx >= len(adbots) or adbots[idx].get("ad_account_id") is None:
         await callback.answer("That account no longer exists.", show_alert=True)
-        return
-
-    if adbots[idx].get("ad_account_id") is None:
-        await callback.answer(
-            "This AdBot account is pending. It has not been assigned yet.",
-            show_alert=True,
-        )
         return
     await _logs_for_account(callback.message.chat.id, callback.message.message_id, adbots[idx]["ad_account_id"])
     await callback.answer()
@@ -614,12 +602,7 @@ async def cb_live_ads(callback: CallbackQuery):
     if not adbots:
         await callback.answer("You don't have any Ad Bot Accounts yet.", show_alert=True)
         return
-    rows = []
-    for i, bot in enumerate(adbots):
-        label = store.slot_display_name(bot, i)
-        if bot.get("ad_account_id") is None:
-            label += " (pending)"
-        rows.append([{"text": label, "callback_data": f"myad:live_one:{i}"}])
+    rows = [[{"text": store.slot_display_name(bot, i), "callback_data": f"myad:live_one:{i}"}] for i, bot in enumerate(adbots)]
     rows.append([{"text": "Back", "callback_data": "myadbot:open"}])
     await raw_api.render(callback.message.chat.id, callback.message.message_id, "<b>Live Advertisement</b>\n\nSelect an account:", rows)
     await callback.answer()
@@ -633,15 +616,6 @@ async def cb_live_one(callback: CallbackQuery):
         await callback.answer("Not found.", show_alert=True)
         return
     bot = adbots[idx]
-
-    if bot.get("ad_account_id") is None:
-        display_name = store.slot_display_name(bot, idx)
-        await callback.answer(
-            "This AdBot account is pending. It has not been assigned yet.",
-            show_alert=True,
-        )
-        return
-
     ad = await db.get_active_ad_for_account(bot["ad_account_id"])
 
     if not ad:
@@ -778,27 +752,9 @@ async def cmd_logs(message: Message):
         await message.reply("You don't have any Ad Bot Accounts yet.")
         return
     if len(adbots) == 1:
-        if adbots[0].get("ad_account_id") is None:
-            await message.reply(
-                "This AdBot account is pending. It has not been assigned yet."
-            )
-            return
-
-        await _logs_for_account(
-            message.chat.id,
-            None,
-            adbots[0]["ad_account_id"],
-            send_new=True,
-        )
+        await _logs_for_account(message.chat.id, None, adbots[0]["ad_account_id"], send_new=True)
         return
-    rows = []
-    for i, bot in enumerate(adbots):
-        label = store.slot_display_name(bot, i)
-        if bot.get("ad_account_id") is None:
-            label += " (pending)"
-        rows.append([
-            {"text": label, "callback_data": f"quicklogs:acct:{i}"}
-        ])
+    rows = [[{"text": store.slot_display_name(bot, i), "callback_data": f"quicklogs:acct:{i}"}] for i, bot in enumerate(adbots)]
     await raw_api.send_message(message.chat.id, "Which Ad Bot Account's logs do you want to see?", rows)
 
 @router.callback_query(F.data.startswith("quicklogs:acct:"))
@@ -879,12 +835,7 @@ async def cmd_manage_shortcut(message: Message):
         return
     rows = []
     for i, bot in enumerate(adbots):
-        label = store.slot_display_name(bot, i)
-        if bot.get("ad_account_id") is None:
-            label += " (pending)"
-        rows.append([
-            {"text": label, "callback_data": f"myad:manage_one:{i}"}
-        ])
+        rows.append([{"text": store.slot_display_name(bot, i), "callback_data": f"myad:manage_one:{i}"}])
     rows.append([{"text": "Back", "callback_data": "myadbot:open"}])
     await raw_api.send_message(message.chat.id, "<b>Manage Ad Bot</b>\n\nSelect an account:", rows)
 
@@ -896,14 +847,7 @@ async def cmd_live_shortcut(message: Message):
     if not adbots:
         await message.reply("You don't have any Ad Bot Accounts yet.")
         return
-    rows = []
-    for i, bot in enumerate(adbots):
-        label = store.slot_display_name(bot, i)
-        if bot.get("ad_account_id") is None:
-            label += " (pending)"
-        rows.append([
-            {"text": label, "callback_data": f"myad:live_one:{i}"}
-        ])
+    rows = [[{"text": store.slot_display_name(bot, i), "callback_data": f"myad:live_one:{i}"}] for i, bot in enumerate(adbots)]
     rows.append([{"text": "Back", "callback_data": "myadbot:open"}])
     await raw_api.send_message(message.chat.id, "<b>Live Advertisement</b>\n\nSelect an account:", rows)
 
