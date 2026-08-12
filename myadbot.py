@@ -205,7 +205,7 @@ def _account_edit_rows(idx, assigned=True):
         rows.append([{"text": "Edit Username", "callback_data": f"myad:editusername:{idx}"}])
     rows.append([{"text": "Edit Photo", "callback_data": f"myad:editphoto:{idx}"}])
     rows.append([{"text": "Copy Your Profile", "callback_data": f"myad:copyprofile:{idx}"}])
-    rows.append([{"text": "Copy Your Other Account Profile", "callback_data": f"myad:copyother:{idx}"}])
+    rows.append([{"text": "Copy Someone Else Profile", "callback_data": f"myad:copyother:{idx}"}])
     rows.append([{"text": "Back", "callback_data": "myad:manage"}])
     return rows
 
