@@ -54,14 +54,14 @@
       "photo_file_id": null
     },
     {
-      "name": null,
-      "ad_account_id": null,
+      "name": "Adbot #4",
+      "ad_account_id": 1,
       "bio": null,
       "photo_file_id": null
     },
     {
-      "name": null,
-      "ad_account_id": null,
+      "name": "Adbot #5",
+      "ad_account_id": 6,
       "bio": null,
       "photo_file_id": null
     }
