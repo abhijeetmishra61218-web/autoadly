@@ -47,75 +47,14 @@ async def check_via_spambot(ad_account_id: int) -> str:
     except Exception as e:
         return f"(could not reach SpamBot: {e})"
 
-def _classify_spambot_reply(reply_text: str) -> str:
-    """
-    Classify a SpamBot response as:
-
-        clean       -> account is known to be clean
-        restricted  -> account is explicitly/strongly limited
-        unknown     -> API failure or unfamiliar response
-
-    Unknown must never be treated as either clean or restricted.
-    """
-    if not reply_text:
-        print("[restriction_monitor] SpamBot returned an empty reply")
-        return "unknown"
-
-    lowered = reply_text.lower().strip()
-
-    # Transport / response failures.
-    if (
-        lowered.startswith("(could not reach spambot:")
-        or lowered.startswith("(no reply received")
-        or lowered.startswith("(no text in spambot reply")
-    ):
-        print(
-            f"[restriction_monitor] SpamBot unavailable: {reply_text}"
-        )
-        return "unknown"
-
-    # Known clean responses.
-    clean_signals = [
-        "no limits are currently applied",
-        "free as a bird",
-        "no limits are currently",
-    ]
-
-    if any(signal in lowered for signal in clean_signals):
-        return "clean"
-
-    # SpamBot wording seen for limited accounts.
-    restricted_signals = [
-        "your account is limited",
-        "account is limited",
-        "currently limited",
-        "spam limitations",
-        "spam restriction",
-        "spam restrictions",
-        "anti-spam systems",
-        "harsh response from our anti-spam systems",
-        "some phone numbers may trigger a harsh response",
-        "limited due to spam",
-    ]
-
-    if any(signal in lowered for signal in restricted_signals):
-        return "restricted"
-
-    print(
-        "[restriction_monitor] Unknown SpamBot response; "
-        f"not taking action: {reply_text!r}"
-    )
-    return "unknown"
-
-
 def _spambot_indicates_restriction(reply_text: str) -> bool:
-    """
-    Backward-compatible helper for existing restriction logic.
-
-    Only an explicit `restricted` classification returns True.
-    Unknown responses never count as restrictions.
-    """
-    return _classify_spambot_reply(reply_text) == "restricted"
+    """SpamBot's standard clean message is very consistent — anything that doesn't
+       match it is treated as an actual restriction."""
+    if not reply_text:
+        return False  # couldn't reach SpamBot at all — don't act on missing info
+    lowered = reply_text.lower()
+    clean_signals = ["no limits are currently applied", "free as a bird", "no limits"]
+    return not any(signal in lowered for signal in clean_signals)
 
 async def handle_suspected_restriction(ad_account_id: int):
     account = await db.get_ad_account_by_id(ad_account_id)
@@ -287,183 +226,40 @@ async def cb_restrict_notify(callback: CallbackQuery):
 DAILY_RECHECK_INTERVAL_SECONDS = 24 * 60 * 60
 
 async def daily_recheck_restricted_accounts():
-    """
-    Daily SpamBot verification.
-
-    Customer-assigned accounts:
-        clean      -> no action
-        restricted -> mark restricted without fulfillment + notify owner
-        unknown    -> no action
-
-    Previously restricted/banned accounts:
-        clean      -> return to free pool
-        restricted -> stay restricted
-        unknown    -> leave unchanged
-    """
+    """Runs once daily: re-tests every restricted/banned account via @SpamBot.
+       Any that come back clean are returned to the free pool (auto-fulfilling
+       whoever's next in the queue) and the owner is notified."""
     admins = store.load_admins()
     owner_id = admins.get("owner_id")
 
-    if not owner_id:
-        print(
-            "[restriction_monitor] daily check skipped: "
-            "no owner_id configured"
-        )
-        return
-
-    # ========================================================
-    # 1. Check every customer-assigned account.
-    # ========================================================
-
-    customer_adbots = store.load_customer_adbots()
-    customer_account_ids = set()
-
-    for uid_str, bots in customer_adbots.items():
-        for bot in bots:
-            account_id = bot.get("ad_account_id")
-
-            if account_id is not None:
-                customer_account_ids.add(int(account_id))
-
-    newly_restricted = []
-
-    for account_id in sorted(customer_account_ids):
-        try:
-            account = await db.get_ad_account_by_id(account_id)
-
-            if not account:
-                print(
-                    f"[restriction_monitor] account {account_id} "
-                    "not found in database"
-                )
-                continue
-
-            # Already restricted/banned accounts are handled in recovery
-            # section below.
-            if account["status"] in {"restricted", "banned"}:
-                continue
-
-            spambot_reply = await check_via_spambot(account_id)
-            classification = _classify_spambot_reply(spambot_reply)
-
-            print(
-                f"[restriction_monitor] daily account={account_id} "
-                f"classification={classification}"
-            )
-
-            if classification == "restricted":
-                await db.mark_ad_account_status_no_fulfill(
-                    account_id,
-                    "restricted",
-                )
-
-                newly_restricted.append(
-                    {
-                        "id": account_id,
-                        "phone": account["phone"],
-                        "reply": spambot_reply,
-                    }
-                )
-
-        except Exception as e:
-            print(
-                f"[restriction_monitor] daily customer check failed "
-                f"account={account_id}: {e}"
-            )
-
-    # Notify owner for newly detected restrictions.
-    for item in newly_restricted:
-        try:
-            await raw_api.send_message(
-                owner_id,
-                (
-                    "⚠️ Daily AdBot restriction detected!\n\n"
-                    f"Account ID: {item['id']}\n"
-                    f"Phone: {item['phone']}\n\n"
-                    "@SpamBot says:\n"
-                    f"{item['reply']}\n\n"
-                    "The account has been marked as restricted."
-                ),
-                [],
-            )
-        except Exception as e:
-            print(
-                f"[restriction_monitor] could not notify owner "
-                f"about restricted account {item['id']}: {e}"
-            )
-
-    # ========================================================
-    # 2. Recover accounts already marked restricted/banned.
-    # ========================================================
-
     import aiosqlite
-
     async with aiosqlite.connect(db.DB_PATH) as conn:
         conn.row_factory = aiosqlite.Row
-
-        cursor = await conn.execute(
-            "SELECT id, phone, status "
-            "FROM ad_accounts "
-            "WHERE status IN ('restricted', 'banned')"
-        )
-
+        cursor = await conn.execute("SELECT id, phone, status FROM ad_accounts WHERE status IN ('restricted', 'banned')")
         rows = await cursor.fetchall()
 
+    if not rows:
+        return
+
     recovered = []
-
-    for row in rows:
+    for r in rows:
         try:
-            spambot_reply = await check_via_spambot(row["id"])
-            classification = _classify_spambot_reply(spambot_reply)
-
-            print(
-                f"[restriction_monitor] recovery account={row['id']} "
-                f"classification={classification}"
-            )
-
-            # ONLY a confirmed clean response may restore an account.
-            if classification == "clean":
-                await db.mark_ad_account_status(
-                    row["id"],
-                    "free",
-                )
-
-                recovered.append(
-                    (row["id"], row["phone"])
-                )
-
-            elif classification == "unknown":
-                # Never change status on an unknown result.
-                continue
-
+            spambot_reply = await check_via_spambot(r["id"])
         except Exception as e:
-            print(
-                f"[restriction_monitor] daily recovery check failed "
-                f"account={row['id']}: {e}"
-            )
+            print(f"[restriction_monitor] daily recheck failed for account {r['id']}: {e}")
+            continue
+        if not _spambot_indicates_restriction(spambot_reply):
+            await db.mark_ad_account_status(r["id"], "free")
+            recovered.append((r["id"], r["phone"]))
 
-    if recovered:
-        lines = [
-            "Daily restriction recheck:",
-            f"{len(recovered)} account(s) were confirmed clean "
-            "and returned to the free pool:",
-        ]
-
-        for account_id, phone in recovered:
-            lines.append(
-                f"  ID {account_id} — {phone}"
-            )
-
+    if recovered and owner_id:
+        lines = [f"Daily restriction recheck: {len(recovered)} account(s) came back clean and were returned to the free pool:"]
+        for acc_id, phone in recovered:
+            lines.append(f"  ID {acc_id} — {phone}")
         try:
-            await raw_api.send_message(
-                owner_id,
-                "\n".join(lines),
-                [],
-            )
+            await raw_api.send_message(owner_id, "\n".join(lines), [])
         except Exception as e:
-            print(
-                "[restriction_monitor] could not notify owner "
-                f"of recovered accounts: {e}"
-            )
+            print(f"[restriction_monitor] could not notify owner of recovered accounts: {e}")
 
 async def daily_recheck_loop():
     while True:
