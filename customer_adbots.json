@@ -18,20 +18,20 @@
       "ad_account_id": 4
     },
     {
-      "name": null,
-      "ad_account_id": null,
+      "name": "Adbot #3",
+      "ad_account_id": 12,
       "bio": null,
       "photo_file_id": null
     },
     {
-      "name": null,
-      "ad_account_id": null,
+      "name": "Adbot #4",
+      "ad_account_id": 13,
       "bio": null,
       "photo_file_id": null
     },
     {
-      "name": null,
-      "ad_account_id": null,
+      "name": "Adbot #5",
+      "ad_account_id": 14,
       "bio": null,
       "photo_file_id": null
     }
@@ -70,8 +70,8 @@
   ],
   "8897259158": [
     {
-      "name": null,
-      "ad_account_id": null,
+      "name": "Adbot #1",
+      "ad_account_id": 15,
       "bio": null,
       "photo_file_id": null
     }
@@ -79,7 +79,7 @@
   "8726420510": [
     {
       "name": "BudRunnerSupport",
-      "ad_account_id": null,
+      "ad_account_id": 16,
       "bio": "",
       "photo_file_id": "AgACAgQAAxUAAWp_8CKgKW5XSppSlt7NGJ71v8aJAALOEWsb2_nQUxuCIAzakLQWAQADAgADYwADPQQ"
     }
