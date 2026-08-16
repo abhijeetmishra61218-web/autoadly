@@ -111,7 +111,7 @@ async def on_addadbot_text(message: Message):
     text = message.text.strip()
 
     if step == "await_phone":
-        phone = store.normalize_phone(text)
+        phone = text
         client = TelegramClient(StringSession(), API_ID, API_HASH)
         await client.connect()
         try:
@@ -244,7 +244,7 @@ async def cmd_accounts(message: Message):
     lines = ["<b>All Ad Bot Accounts</b>", ""]
     for a in accounts:
         pw_flag = " 🔑" if a["two_step_password"] else ""
-        lines.append(f"ID {a['id']} — {store.normalize_phone(a['phone'])} — {a['status']}{pw_flag}")
+        lines.append(f"ID {a['id']} — {a['phone']} — {a['status']}{pw_flag}")
     lines.append("")
     lines.append("Use /login (number) to retrieve a fresh login code and saved 2FA password for any account.")
     await message.reply("\n".join(lines), parse_mode="HTML")
@@ -257,7 +257,7 @@ async def cmd_login(message: Message):
     if len(parts) != 2:
         await message.reply("Usage: /login +15551234567")
         return
-    phone = store.normalize_phone(parts[1])
+    phone = parts[1].strip()
     account = await db.get_ad_account_by_phone(phone)
     if not account:
         await message.reply(f"No account found with phone {phone}.")

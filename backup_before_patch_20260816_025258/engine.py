@@ -75,19 +75,6 @@ def _build_message_link(marketplace, msg_id):
 VISIBILITY_CHECK_DELAY_SECONDS = 90
 VISIBILITY_RECENT_WINDOW = 15  # message must still be within the last N messages to count as "visible"
 
-async def is_still_visible(client, target, msg_id):
-    """True if a posted message still exists and hasn't been buried under a
-       flood of newer messages (same visibility rule used for auto-demotion)."""
-    if msg_id is None:
-        return False
-    msg = await client.get_messages(target, ids=msg_id)
-    if msg is None:
-        return False
-    async for m in client.iter_messages(target, limit=VISIBILITY_RECENT_WINDOW):
-        if m.id == msg_id:
-            return True
-    return False
-
 async def _check_visibility_later(client, marketplace, msg_id, target):
     """Fire-and-forget: waits a bit, then checks whether a just-posted message
        is still visible (exists AND not buried under a flood of newer messages).
@@ -96,7 +83,15 @@ async def _check_visibility_later(client, marketplace, msg_id, target):
         return
     try:
         await asyncio.sleep(VISIBILITY_CHECK_DELAY_SECONDS)
-        buried = not await is_still_visible(client, target, msg_id)
+        msg = await client.get_messages(target, ids=msg_id)
+        buried = msg is None
+        if not buried:
+            still_recent = False
+            async for m in client.iter_messages(target, limit=VISIBILITY_RECENT_WINDOW):
+                if m.id == msg_id:
+                    still_recent = True
+                    break
+            buried = not still_recent
         newly_demoted = await db.record_visibility_check(marketplace["id"], buried)
         if newly_demoted:
             logger.info(f"Marketplace {marketplace['id']} ({marketplace.get('chat_username')}) auto-demoted to low quality (posts consistently buried).")
@@ -106,15 +101,6 @@ async def _check_visibility_later(client, marketplace, msg_id, target):
 async def post_to_marketplace(client: TelegramClient, ad, marketplace):
     """Attempts a single post. Returns the real destination message link on success,
        or None on any failure (silently skipped)."""
-    link, _msg_id, _target = await _post_to_marketplace_core(client, ad, marketplace)
-    return link
-
-async def _post_to_marketplace_core(client: TelegramClient, ad, marketplace):
-    """Same as post_to_marketplace, but also returns (msg_id, target) so callers
-       that need to run their own visibility check (e.g. low_quality_engine.py)
-       can do so without duplicating the posting logic. post_to_marketplace()
-       above is just a thin wrapper kept 100% behavior-identical for the
-       existing caller in run_advertisement_loop."""
     try:
         target = marketplace["chat_id"]
         source_username = ad["source_username"] if "source_username" in ad.keys() else None
@@ -138,7 +124,7 @@ async def _post_to_marketplace_core(client: TelegramClient, ad, marketplace):
             new_msg_id = _extract_new_message_id(result)
             if new_msg_id and await db.should_check_visibility(marketplace["id"]):
                 asyncio.create_task(_check_visibility_later(client, marketplace, new_msg_id, target))
-            return _build_message_link(marketplace, new_msg_id), new_msg_id, target
+            return _build_message_link(marketplace, new_msg_id)
 
         candidates = await db.get_ranked_topics(marketplace["id"], ad["category"])
         if not candidates:
@@ -158,25 +144,25 @@ async def _post_to_marketplace_core(client: TelegramClient, ad, marketplace):
                 new_msg_id = _extract_new_message_id(result)
                 if new_msg_id and await db.should_check_visibility(marketplace["id"]):
                     asyncio.create_task(_check_visibility_later(client, marketplace, new_msg_id, target))
-                return _build_message_link(marketplace, new_msg_id), new_msg_id, target
+                return _build_message_link(marketplace, new_msg_id)
             except (FloodWaitError, ChatWriteForbiddenError, UserBannedInChannelError):
                 raise
             except Exception:
                 continue  # this topic rejected the post, try the next candidate
 
-        return None, None, None
+        return None
     except FloodWaitError:
-        return None, None, None
+        return None
     except (ChatWriteForbiddenError, UserBannedInChannelError):
         try:
             import restriction_monitor
             await restriction_monitor.record_marketplace_ban(ad["ad_account_id"], marketplace["id"])
         except Exception as e:
             print(f"[engine] restriction_monitor recording failed: {e}")
-        return None, None, None
+        return None
     except Exception as e:
         logger.info(f"Skipped marketplace {marketplace['id']}: {e}")
-        return None, None, None
+        return None
 
 async def run_advertisement_loop(ad):
     """One continuous cycle for a single advertisement. Runs until status changes to 'stopped'."""
@@ -270,13 +256,6 @@ async def start_engine():
 
     tasks.append(asyncio.create_task(cleanup_loop()))
     tasks.append(asyncio.create_task(watch_for_new_ads()))
-
-    # Separate, independent adaptive-schedule engine for marketplaces already
-    # auto-demoted to 'low' quality (skipped entirely by the loop above).
-    # Runs on its own task/schedule and cannot affect the main rotation.
-    import low_quality_engine
-    tasks.append(asyncio.create_task(low_quality_engine.watch_low_quality_marketplaces()))
-
     await asyncio.gather(*tasks)
 
 if __name__ == "__main__":

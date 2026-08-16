@@ -275,7 +275,7 @@ async def cb_manage_one(callback: CallbackQuery):
         text = f"<b>{display_name}</b>\n\nNot yet assigned an Ad Bot Account. Set the name/bio/photo now — it will be applied automatically the moment one becomes available."
     else:
         account = await db.get_ad_account_by_id(slot["ad_account_id"])
-        phone = store.normalize_phone(account["phone"]) if account else "unknown"
+        phone = account["phone"] if account else "unknown"
         text = f"<b>{display_name}</b>\n\nAccount: {phone}"
 
     await raw_api.render(callback.message.chat.id, callback.message.message_id, text, _account_edit_rows(idx, assigned=slot.get("ad_account_id") is not None))

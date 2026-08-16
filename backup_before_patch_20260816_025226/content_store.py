@@ -3,20 +3,6 @@
 
 import json
 import os
-import re
-
-def normalize_phone(raw: str) -> str:
-    """Strips spaces/dashes/parens/etc out of a phone number, keeping a single
-       leading '+' if present. Used both when a phone number is first entered
-       (so it's stored clean) and whenever one is displayed (so any number
-       already in the system with stray spaces shows clean immediately too,
-       with no migration needed)."""
-    if not raw:
-        return raw
-    raw = raw.strip()
-    has_plus = raw.startswith("+")
-    digits = re.sub(r"\D", "", raw)
-    return ("+" + digits) if has_plus else digits
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PLANS_FILE = os.path.join(BASE_DIR, "plans.json")
@@ -460,38 +446,6 @@ def remove_pending_account_request(user_id):
     data = load_pending_account_requests()
     data.pop(str(user_id), None)
     save_pending_account_requests(data)
-
-def is_priority_request(entry):
-    """created_at == 0 is how /priority and the direct-assign fallback mark
-       someone as jumped to the very front of the queue (see
-       queue_pending_account_request's docstring)."""
-    return entry is not None and entry.get("created_at") == 0
-
-def list_pending_account_requests_sorted():
-    """Returns the account-request queue as a list of
-       (user_id, created_at, is_priority), priority entries first (in the
-       order they were prioritized), then everyone else oldest-first."""
-    data = load_pending_account_requests()
-    entries = [(int(uid), e["created_at"], is_priority_request(e)) for uid, e in data.items()]
-    entries.sort(key=lambda e: (not e[2], e[1]))
-    return entries
-
-def remove_priority(user_id):
-    """Un-prioritizes a customer previously jumped to the front via /priority
-       (created_at forced to 0), restoring them to their fair queue position —
-       their subscription's purchase_date if known, otherwise now. Returns
-       False if they weren't in the queue or weren't currently prioritized."""
-    import time as _time
-    data = load_pending_account_requests()
-    key = str(user_id)
-    entry = data.get(key)
-    if not is_priority_request(entry):
-        return False
-    sub = get_subscription(user_id)
-    restored_at = sub.get("purchase_date") if sub else None
-    data[key] = {"created_at": restored_at if restored_at is not None else _time.time()}
-    save_pending_account_requests(data)
-    return True
 
 PENDING_REPLACEMENTS_FILE = os.path.join(BASE_DIR, "pending_replacements.json")
 

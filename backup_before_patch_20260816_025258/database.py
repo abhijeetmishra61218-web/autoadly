@@ -88,12 +88,6 @@ async def get_list_marketplaces(list_id: int):
         """, (list_id,))
         return await cursor.fetchall()
 
-async def get_marketplace_by_id(marketplace_id: int):
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute("SELECT * FROM marketplaces WHERE id = ?", (marketplace_id,))
-        return await cursor.fetchone()
-
 async def get_marketplace_list_by_id(list_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -478,8 +472,6 @@ async def get_recent_logs_for_customer(user_id, minutes: int = 15):
         return await cursor.fetchall()
 
 async def add_ad_account(phone: str, session_string: str, status: str = "free"):
-    import content_store as store
-    phone = store.normalize_phone(phone)
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             "INSERT INTO ad_accounts (phone, session_string, status) VALUES (?, ?, ?)",
@@ -530,22 +522,10 @@ async def delete_ad_account(account_id: int):
         await db.commit()
 
 async def get_ad_account_by_phone(phone: str):
-    import content_store as store
-    phone = store.normalize_phone(phone)
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM ad_accounts WHERE phone = ?", (phone,))
-        row = await cursor.fetchone()
-        if row is not None:
-            return row
-        # Fall back to a scan-and-compare for accounts stored before this fix
-        # (with stray spaces baked into the phone column), so lookups still
-        # match instantly without needing a DB migration.
-        cursor = await db.execute("SELECT * FROM ad_accounts")
-        for candidate in await cursor.fetchall():
-            if store.normalize_phone(candidate["phone"]) == phone:
-                return candidate
-        return None
+        return await cursor.fetchone()
 
 async def refresh_ad_account_session(account_id: int, session_string: str, status: str = "free"):
     async with aiosqlite.connect(DB_PATH) as db:

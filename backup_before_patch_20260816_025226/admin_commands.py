@@ -353,14 +353,9 @@ async def cmd_view(message: Message):
         "",
     ]
     for i, bot in enumerate(adbots):
-        if bot.get("ad_account_id"):
-            ad = await db.get_active_ad_for_account(bot["ad_account_id"])
-            status = "Running" if ad else "Stopped"
-            account = await db.get_ad_account_by_id(bot["ad_account_id"])
-            phone = store.normalize_phone(account["phone"]) if account else "unknown"
-            lines.append(f"{store.slot_display_name(bot, i)} — {status} — {phone}")
-        else:
-            lines.append(f"{store.slot_display_name(bot, i)} — Unassigned")
+        ad = await db.get_active_ad_for_account(bot["ad_account_id"])
+        status = "Running" if ad else "Stopped"
+        lines.append(f"{store.slot_display_name(bot, i)} — {status}")
 
     await message.reply("\n".join(lines), parse_mode="HTML")
 
@@ -380,53 +375,6 @@ async def cmd_cancel_priority(message: Message):
         return
     store.remove_pending_account_request(target_uid)
     await message.reply(f"Removed @{username} from the account request queue.")
-
-@router.message(Command("queue"))
-async def cmd_queue(message: Message):
-    """Admin/owner-only: lists every customer waiting for an Ad Bot Account,
-       priority customers first, then everyone else in fair (first-come) order."""
-    if not store.is_admin(message.from_user.id):
-        return
-    entries = store.list_pending_account_requests_sorted()
-    if not entries:
-        await message.reply("The queue is empty — nobody is waiting for an Ad Bot Account.")
-        return
-
-    lines = ["<b>Account Request Queue</b>", ""]
-    for pos, (uid, created_at, is_priority) in enumerate(entries, start=1):
-        username = store.get_username_by_uid(uid)
-        label = f"@{username}" if username else f"user_id={uid}"
-        tag = "⭐ priority" if is_priority else "normal"
-        waited = time.strftime("%Y-%m-%d %H:%M", time.localtime(created_at)) if created_at else "unknown"
-        lines.append(f"{pos}. {label} — {tag} (queued: {waited})")
-    await message.reply("\n".join(lines), parse_mode="HTML")
-
-@router.message(Command("rpriority"))
-async def cmd_remove_priority(message: Message):
-    """Admin/owner-only: removes a customer from priority status, dropping
-       them back to their fair position in the queue instead of the very front."""
-    if not store.is_admin(message.from_user.id):
-        return
-    parts = message.text.split()
-    if len(parts) != 2 or not parts[1].startswith("@"):
-        await message.reply("Usage: /rpriority @username")
-        return
-    username = parts[1].lstrip("@")
-    target_uid = store.get_uid_by_username(username)
-    if not target_uid:
-        await message.reply(f"@{username} hasn't started the bot yet.")
-        return
-
-    entry = store.get_pending_account_request(target_uid)
-    if entry is None:
-        await message.reply(f"@{username} isn't in the account request queue.")
-        return
-    if not store.is_priority_request(entry):
-        await message.reply(f"@{username} is already non-priority.")
-        return
-
-    store.remove_priority(target_uid)
-    await message.reply(f"@{username} removed from priority — back in the queue at their fair position.")
 
 @router.message(Command("expire"))
 async def cmd_expire_user(message: Message):
