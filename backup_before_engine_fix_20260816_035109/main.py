@@ -1,0 +1,45 @@
+import asyncio
+from aiogram import Bot, Dispatcher
+from config import BOT_TOKEN
+from handlers import router
+import payments_admin
+import payments_flow
+import myadbot
+import adwizard
+import admin_commands
+import ban_middleware
+import join_middleware
+import account_setup
+import backup_system
+import restriction_monitor
+import github_backup
+import subscription_expiry
+import engine
+
+async def main():
+    bot = Bot(token=BOT_TOKEN)
+    dp = Dispatcher()
+    dp.message.outer_middleware(ban_middleware.BanMiddleware())
+    dp.callback_query.outer_middleware(ban_middleware.BanMiddleware())
+    dp.message.outer_middleware(join_middleware.JoinCheckMiddleware())
+    dp.callback_query.outer_middleware(join_middleware.JoinCheckMiddleware())
+    dp.include_router(router)
+    dp.include_router(payments_admin.router)
+    dp.include_router(payments_flow.router)
+    dp.include_router(myadbot.router)
+    dp.include_router(adwizard.router)
+    dp.include_router(admin_commands.router)
+    dp.include_router(account_setup.router)
+    dp.include_router(restriction_monitor.router)
+
+    asyncio.create_task(backup_system.cleanup_loop())
+    asyncio.create_task(github_backup.backup_loop())
+    asyncio.create_task(subscription_expiry.expiry_loop())
+    asyncio.create_task(restriction_monitor.daily_recheck_loop())
+    asyncio.create_task(engine.start_engine())
+    asyncio.create_task(account_setup.resume_unsynced_joins())
+
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
