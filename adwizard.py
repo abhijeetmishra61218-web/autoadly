@@ -4,6 +4,7 @@ AutoAdly - Set Advertisement wizard
 
 import re
 from aiogram import Router, F
+from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
 import raw_api
@@ -51,6 +52,20 @@ async def cb_set_ad_start(callback: CallbackQuery):
         [[{"text": "Cancel", "callback_data": "myadbot:open"}]],
     )
     await callback.answer()
+
+@router.message(Command("set"))
+async def cmd_set_ad_start(message: Message):
+    user_id = message.from_user.id
+    adbots = store.get_customer_adbots(user_id)
+    if not adbots:
+        await message.reply("You don't have an Ad Bot Account yet.")
+        return
+    WIZARD_PENDING[user_id] = {"step": "await_link"}
+    await raw_api.send_message(
+        message.chat.id,
+        "Send the advertisement message link.\n\nExample: https://t.me/yourchannel/123",
+        [[{"text": "Cancel", "callback_data": "myadbot:open"}]],
+    )
 
 @router.message(F.text, ~F.text.startswith("/"), F.from_user.id.in_(WIZARD_PENDING.keys()))
 async def on_wizard_text(message: Message):
