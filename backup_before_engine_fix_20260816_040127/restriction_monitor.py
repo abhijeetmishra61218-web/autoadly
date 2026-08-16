@@ -34,16 +34,6 @@ def record_marketplace_success(ad_account_id: int):
     _ban_streak.pop(ad_account_id, None)
     _already_flagged.discard(ad_account_id)
 
-def _find_customer_slot(ad_account_id: int):
-    """Returns (user_id, index, name) for whichever customer/slot currently
-       holds this ad_account_id, or (None, None, None) if it's unassigned."""
-    all_adbots = store.load_customer_adbots()
-    for uid_str, bots in all_adbots.items():
-        for i, bot in enumerate(bots):
-            if bot.get("ad_account_id") == ad_account_id:
-                return int(uid_str), i, bot.get("name")
-    return None, None, None
-
 async def check_via_spambot(ad_account_id: int) -> str:
     """Messages @SpamBot from the account itself and returns its reply text."""
     client = await engine.get_client(ad_account_id)
@@ -89,7 +79,13 @@ async def handle_suspected_restriction(ad_account_id: int):
         return
 
     # Find which customer/slot owns this account, so we can offer to notify them right away
-    target_uid, target_idx, target_name = _find_customer_slot(ad_account_id)
+    all_adbots = store.load_customer_adbots()
+    target_uid, target_idx, target_name = None, None, None
+    for uid_str, bots in all_adbots.items():
+        for i, bot in enumerate(bots):
+            if bot["ad_account_id"] == ad_account_id:
+                target_uid, target_idx, target_name = int(uid_str), i, bot["name"]
+                break
 
     text = (
         f"⚠️ Ad Bot Account restriction suspected!\n\n"
@@ -136,7 +132,12 @@ async def cb_restrict_detected_notify(callback: CallbackQuery):
 async def do_replacement(old_account_id: int, owner_id: int, target_uid=None, target_idx=None, target_name=None):
     if target_uid is None:
         # Find which customer/slot owns this account (fallback if called directly, not via handle_suspected_restriction)
-        target_uid, target_idx, target_name = _find_customer_slot(old_account_id)
+        all_adbots = store.load_customer_adbots()
+        for uid_str, bots in all_adbots.items():
+            for i, bot in enumerate(bots):
+                if bot["ad_account_id"] == old_account_id:
+                    target_uid, target_idx, target_name = int(uid_str), i, bot["name"]
+                    break
     if target_uid is None:
         return  # unassigned account, nothing to replace for
 
@@ -186,7 +187,7 @@ async def do_replacement(old_account_id: int, owner_id: int, target_uid=None, ta
         return
 
     import myadbot
-    await myadbot.fulfill_replacement(target_uid, target_idx, new_account["id"], ad_config, old_profile=old_profile, reason="restricted")
+    await myadbot.fulfill_replacement(target_uid, target_idx, new_account["id"], ad_config, old_profile=old_profile)
 
     try:
         rows = [[{"text": "Notify Customer", "callback_data": f"restrictnotify:{target_uid}:{target_idx}:yes"},
@@ -267,95 +268,3 @@ async def daily_recheck_loop():
         except Exception as e:
             print(f"[restriction_monitor] daily recheck loop failed: {e}")
         await asyncio.sleep(DAILY_RECHECK_INTERVAL_SECONDS)
-
-# ---- Full concurrent sweep: checks every occupied account via @SpamBot AT
-# THE SAME TIME (not one-by-one, and not dependent on post-failure streaks),
-# then asks the owner Replace/Ignore for anything flagged — separate from the
-# reactive, auto-replacing flow above.
-SWEEP_CONCURRENCY = 8  # cap simultaneous @SpamBot checks so this can't itself look like flooding
-
-async def _sweep_check_one(account, semaphore):
-    async with semaphore:
-        try:
-            reply = await check_via_spambot(account["id"])
-        except Exception as e:
-            print(f"[restriction_monitor] sweep check failed for account {account['id']}: {e}")
-            return None
-        if _spambot_indicates_restriction(reply):
-            return (account, reply)
-        return None
-
-async def full_sweep_all_accounts():
-    """Checks every occupied Ad Bot Account via @SpamBot concurrently. Anything
-       that comes back restricted is reported to the owner with Replace/Ignore
-       buttons — nothing is auto-replaced here, the owner decides (unlike the
-       reactive post-failure flow above, which replaces immediately)."""
-    accounts = await db.get_occupied_ad_accounts()
-    if not accounts:
-        return
-
-    admins = store.load_admins()
-    owner_id = admins.get("owner_id")
-    if not owner_id:
-        return
-
-    semaphore = asyncio.Semaphore(SWEEP_CONCURRENCY)
-    results = await asyncio.gather(*[_sweep_check_one(a, semaphore) for a in accounts])
-    flagged = [r for r in results if r]
-
-    if not flagged:
-        return  # clean sweep — don't message the owner when there's nothing to act on
-
-    for account, spambot_reply in flagged:
-        uid, idx, name = _find_customer_slot(account["id"])
-        owner_label = f"user_id={uid}" if uid is not None else "(unassigned account)"
-        slot_label = f" — slot {name or 'Adbot'} #{idx + 1}" if idx is not None else ""
-        text = (
-            f"⚠️ Full sweep check: Ad Bot Account ID {account['id']} ({account['phone']}) "
-            f"looks restricted.\n\nCustomer: {owner_label}{slot_label}\n\n"
-            f"@SpamBot says:\n{spambot_reply}"
-        )
-        rows = [[
-            {"text": "Replace", "callback_data": f"sweepflag:{account['id']}:replace"},
-            {"text": "Ignore", "callback_data": f"sweepflag:{account['id']}:ignore"},
-        ]]
-        try:
-            await raw_api.send_message(owner_id, text, rows)
-        except Exception as e:
-            print(f"[restriction_monitor] could not send sweep alert: {e}")
-
-@router.callback_query(F.data.startswith("sweepflag:"))
-async def cb_sweep_flag(callback: CallbackQuery):
-    if not store.is_admin(callback.from_user.id):
-        await callback.answer("Admins only.", show_alert=True)
-        return
-    _, account_id_str, choice = callback.data.split(":")
-    account_id = int(account_id_str)
-
-    if choice == "ignore":
-        try:
-            await callback.message.edit_text(callback.message.text + "\n\n— Ignored, no action taken.")
-        except Exception:
-            pass
-        await callback.answer("Ignored.")
-        return
-
-    try:
-        await callback.message.edit_text(callback.message.text + "\n\n— Replacing now…")
-    except Exception:
-        pass
-    admins = store.load_admins()
-    owner_id = admins.get("owner_id") or callback.from_user.id
-    uid, idx, name = _find_customer_slot(account_id)
-    await do_replacement(account_id, owner_id, uid, idx, name)
-    await callback.answer("Replacement started.")
-
-SWEEP_INTERVAL_SECONDS = 6 * 60 * 60  # every 6 hours
-
-async def sweep_loop():
-    while True:
-        try:
-            await full_sweep_all_accounts()
-        except Exception as e:
-            print(f"[restriction_monitor] full sweep failed: {e}")
-        await asyncio.sleep(SWEEP_INTERVAL_SECONDS)

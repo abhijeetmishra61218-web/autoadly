@@ -69,15 +69,15 @@ async def cmd_activate(message: Message):
         return
     parts = message.text.split()
     if len(parts) != 4 or not parts[1].startswith("@"):
-        await message.reply("Usage: /activate @username PLAN DAYS\n\nExample: /activate @john Starter 1")
+        await message.reply("Usage: /activate @username PLAN MONTHS\n\nExample: /activate @john Starter 3")
         return
-    _, username_raw, plan_raw, days_raw = parts
+    _, username_raw, plan_raw, months_raw = parts
     username = username_raw.lstrip("@")
 
-    if not days_raw.isdigit():
-        await message.reply("DAYS must be a whole number.")
+    if not months_raw.isdigit():
+        await message.reply("MONTHS must be a whole number.")
         return
-    days = int(days_raw)
+    months = int(months_raw)
 
     plan = _find_plan(plan_raw)
     if not plan:
@@ -90,7 +90,7 @@ async def cmd_activate(message: Message):
         await message.reply(f"@{username} hasn't started the bot yet. Ask them to send /start first, then try again.")
         return
 
-    sub = store.activate_subscription(target_uid, plan["id"], days=days)
+    sub = store.activate_subscription(target_uid, plan["id"], months=months)
     expiry_str = time.strftime("%Y-%m-%d", time.localtime(sub["expiry"]))
     await message.reply(f"Activated {plan['name']} for @{username} — expires {expiry_str}.")
 
@@ -250,7 +250,7 @@ async def _do_change(message_or_callback_msg, target_uid, idx):
     new_account = await db.get_free_ad_account()
     if new_account:
         import myadbot
-        await myadbot.fulfill_replacement(target_uid, idx, new_account["id"], ad_config, reason="banned")
+        await myadbot.fulfill_replacement(target_uid, idx, new_account["id"], ad_config)
         await message_or_callback_msg.reply("Replaced instantly with a free account. Customer notified.")
     else:
         store.queue_pending_replacement(target_uid, idx, ad_config)
@@ -296,13 +296,8 @@ async def cmd_priority(message: Message):
 
     still_needed = needed - assigned
     if still_needed > 0:
-        # created_at=0 forces this customer to the very front of the queue,
-        # ahead of everyone else waiting — queue_pending_account_request()
-        # normally PRESERVES an existing timestamp when re-queuing, which is
-        # why /priority previously said "prioritized" but didn't actually
-        # change anyone's position.
         for _ in range(still_needed):
-            store.queue_pending_account_request(target_uid, created_at=0)
+            store.queue_pending_account_request(target_uid)
         await message.reply(f"Assigned {assigned} account(s) instantly to @{username}. Prioritized in queue for the remaining {still_needed} — they'll be first in line for the next account(s) added.")
     else:
         await message.reply(f"Assigned all {assigned} needed account(s) to @{username} instantly.")
@@ -353,14 +348,9 @@ async def cmd_view(message: Message):
         "",
     ]
     for i, bot in enumerate(adbots):
-        if bot.get("ad_account_id"):
-            ad = await db.get_active_ad_for_account(bot["ad_account_id"])
-            status = "Running" if ad else "Stopped"
-            account = await db.get_ad_account_by_id(bot["ad_account_id"])
-            phone = store.normalize_phone(account["phone"]) if account else "unknown"
-            lines.append(f"{store.slot_display_name(bot, i)} — {status} — {phone}")
-        else:
-            lines.append(f"{store.slot_display_name(bot, i)} — Unassigned")
+        ad = await db.get_active_ad_for_account(bot["ad_account_id"])
+        status = "Running" if ad else "Stopped"
+        lines.append(f"{store.slot_display_name(bot, i)} — {status}")
 
     await message.reply("\n".join(lines), parse_mode="HTML")
 
@@ -380,53 +370,6 @@ async def cmd_cancel_priority(message: Message):
         return
     store.remove_pending_account_request(target_uid)
     await message.reply(f"Removed @{username} from the account request queue.")
-
-@router.message(Command("queue"))
-async def cmd_queue(message: Message):
-    """Admin/owner-only: lists every customer waiting for an Ad Bot Account,
-       priority customers first, then everyone else in fair (first-come) order."""
-    if not store.is_admin(message.from_user.id):
-        return
-    entries = store.list_pending_account_requests_sorted()
-    if not entries:
-        await message.reply("The queue is empty — nobody is waiting for an Ad Bot Account.")
-        return
-
-    lines = ["<b>Account Request Queue</b>", ""]
-    for pos, (uid, created_at, is_priority) in enumerate(entries, start=1):
-        username = store.get_username_by_uid(uid)
-        label = f"@{username}" if username else f"user_id={uid}"
-        tag = "⭐ priority" if is_priority else "normal"
-        waited = time.strftime("%Y-%m-%d %H:%M", time.localtime(created_at)) if created_at else "unknown"
-        lines.append(f"{pos}. {label} — {tag} (queued: {waited})")
-    await message.reply("\n".join(lines), parse_mode="HTML")
-
-@router.message(Command("rpriority"))
-async def cmd_remove_priority(message: Message):
-    """Admin/owner-only: removes a customer from priority status, dropping
-       them back to their fair position in the queue instead of the very front."""
-    if not store.is_admin(message.from_user.id):
-        return
-    parts = message.text.split()
-    if len(parts) != 2 or not parts[1].startswith("@"):
-        await message.reply("Usage: /rpriority @username")
-        return
-    username = parts[1].lstrip("@")
-    target_uid = store.get_uid_by_username(username)
-    if not target_uid:
-        await message.reply(f"@{username} hasn't started the bot yet.")
-        return
-
-    entry = store.get_pending_account_request(target_uid)
-    if entry is None:
-        await message.reply(f"@{username} isn't in the account request queue.")
-        return
-    if not store.is_priority_request(entry):
-        await message.reply(f"@{username} is already non-priority.")
-        return
-
-    store.remove_priority(target_uid)
-    await message.reply(f"@{username} removed from priority — back in the queue at their fair position.")
 
 @router.message(Command("expire"))
 async def cmd_expire_user(message: Message):
@@ -455,13 +398,15 @@ async def cmd_expire_user(message: Message):
     plan_name = plan["name"] if plan else sub.get("plan_id")
 
     import subscription_expiry
-    # release_customer_accounts() also removes target_uid from the
-    # new-account-request and replacement queues, so it doesn't need
-    # repeating here.
     freed, restricted = await subscription_expiry.release_customer_accounts(target_uid, plan_name, source="ended by admin")
 
     store.mark_subscription_flag(target_uid, "reclaimed", True)
-    store.mark_subscription_flag(target_uid, "expiry", time.time())
+    store.remove_pending_account_request(target_uid)
+
+    replacements = store.load_pending_replacements()
+    if str(target_uid) in replacements:
+        replacements.pop(str(target_uid), None)
+        store.save_pending_replacements(replacements)
 
     try:
         await raw_api.send_message(
@@ -678,140 +623,13 @@ async def cmd_remove_account_number(message: Message):
         f"To use this number again, it needs to be logged in fresh via /login — nothing was preserved."
     )
 
-@router.message(Command("checkall"))
-async def cmd_check_all(message: Message):
-    """Owner-only: manually triggers an immediate full concurrent @SpamBot sweep
-       of every occupied account (same checks as the automatic 6-hourly sweep),
-       instead of waiting for the schedule. Anything flagged gets a Replace/Ignore
-       prompt here as usual — this just kicks the check off early."""
-    if not store.is_admin(message.from_user.id):
-        return
-    accounts = await db.get_occupied_ad_accounts()
-    if not accounts:
-        await message.reply("No occupied Ad Bot Accounts to check.")
-        return
-    await message.reply(
-        f"Checking {len(accounts)} occupied Ad Bot Account(s) via @SpamBot at the same time — "
-        f"you'll get a message here for anything flagged as restricted."
-    )
-    import asyncio
-    import restriction_monitor as rm
-    asyncio.create_task(rm.full_sweep_all_accounts())
-
-@router.message(Command("temp1"))
-async def cmd_temp1_preview(message: Message):
-    """Owner-only, preview only: shows exactly what a customer would receive if
-       one of their Ad Bot Accounts were replaced right now. Does NOT touch any
-       account, status, subscription, or queue — purely a preview."""
-    if not store.is_admin(message.from_user.id):
-        return
-    parts = message.text.split()
-    if len(parts) != 2 or not parts[1].startswith("@"):
-        await message.reply("Usage: /temp1 @username")
-        return
-    username = parts[1].lstrip("@")
-    target_uid = store.get_uid_by_username(username)
-    if not target_uid:
-        await message.reply(f"@{username} hasn't started the bot yet.")
-        return
-    adbots = store.get_customer_adbots(target_uid)
-    if not adbots:
-        await message.reply(f"@{username} has no Ad Bot Accounts.")
-        return
-
-    if len(adbots) == 1:
-        await _send_temp1_preview(message, adbots[0], 0)
-        return
-
-    rows = [[{"text": store.slot_display_name(bot, i), "callback_data": f"temp1pick:{target_uid}:{i}"}] for i, bot in enumerate(adbots)]
-    await raw_api.send_message(message.chat.id, f"Preview a replacement for which of @{username}'s accounts?", rows)
-
-@router.callback_query(F.data.startswith("temp1pick:"))
-async def cb_temp1_pick(callback: CallbackQuery):
-    if not store.is_admin(callback.from_user.id):
-        await callback.answer("Admins only.", show_alert=True)
-        return
-    _, uid_str, idx_str = callback.data.split(":")
-    target_uid, idx = int(uid_str), int(idx_str)
-    adbots = store.get_customer_adbots(target_uid)
-    if idx >= len(adbots):
-        await callback.answer("Not found.", show_alert=True)
-        return
-    await _send_temp1_preview(callback.message, adbots[idx], idx)
-    await callback.answer()
-
-async def _send_temp1_preview(message_or_callback_msg, slot, idx):
-    import myadbot
-    display_name = store.slot_display_name(slot, idx)
-    lines = [f"<b>Preview for {display_name}</b> — exactly what the customer would receive:", ""]
-    for reason in ("restricted", "banned"):
-        for has_ad in (True, False):
-            label = f"if {reason}, {'ad running' if has_ad else 'no ad set yet'}"
-            text = myadbot.build_replacement_notice_text(display_name, reason, has_ad_config=has_ad)
-            lines.append(f"<b>{label}:</b>\n{text}\n")
-    await message_or_callback_msg.reply("\n".join(lines), parse_mode="HTML")
-
-@router.message(Command("free"))
-async def cmd_free_number(message: Message):
-    """Owner-only: pulls a phone number off whichever customer currently has it
-       (preserving their slot's name/bio/photo, same as /removeno), SpamBot-checks
-       it, and — if clean — returns it to the free pool via the normal
-       mark_ad_account_status('free') path, so it gets auto-assigned to whoever's
-       next in the queue exactly like any other freed account. If it comes back
-       restricted, it's held back instead of being handed to the next customer."""
-    if not store.is_admin(message.from_user.id):
-        return
-    parts = message.text.split()
-    if len(parts) != 2:
-        await message.reply("Usage: /free +15551234567")
-        return
-    phone = store.normalize_phone(parts[1])
-    account = await db.get_ad_account_by_phone(phone)
-    if not account:
-        await message.reply(f"No Ad Bot Account found with phone {phone}.")
-        return
-    account_id = account["id"]
-
-    all_adbots = store.load_customer_adbots()
-    owner_uid, owner_idx = None, None
-    for uid_str, bots in all_adbots.items():
-        for i, bot in enumerate(bots):
-            if bot.get("ad_account_id") == account_id:
-                owner_uid, owner_idx = int(uid_str), i
-                break
-
-    if owner_uid is not None:
-        existing_ad = await db.get_active_ad_for_account(account_id)
-        if existing_ad:
-            await db.stop_advertisement(existing_ad["id"])
-        all_adbots[str(owner_uid)][owner_idx]["ad_account_id"] = None
-        store.save_customer_adbots(all_adbots)
-
-    await message.reply(f"Checking account {account_id} ({phone}) via @SpamBot before freeing it...")
-    import restriction_monitor as rm
-    spambot_reply = await rm.check_via_spambot(account_id)
-
-    if rm._spambot_indicates_restriction(spambot_reply):
-        await db.mark_ad_account_status_no_fulfill(account_id, "restricted")
-        await message.reply(
-            f"Account {account_id} ({phone}) came back RESTRICTED on @SpamBot check — "
-            f"held back, NOT returned to the free pool.\n\n{spambot_reply}"
-        )
-        return
-
-    await db.mark_ad_account_status(account_id, "free")
-    await message.reply(
-        f"Account {account_id} ({phone}) is clean and has been returned to the free pool — "
-        f"it will show in /freeacc and auto-assign to whoever's next in the queue, same as any other freed account."
-    )
-
 # ---- /oc — owner command reference ----
 # Add a (command, usage, description) tuple here whenever a new owner-only
 # command is added anywhere in the codebase, so /oc always stays accurate.
 OWNER_COMMANDS = [
     ("/users", "/users", "List every registered user and their Telegram ID."),
     ("/premium", "/premium", "List every customer with an active subscription."),
-    ("/activate", "/activate @username PLAN DAYS", "Manually activate/renew a customer's subscription."),
+    ("/activate", "/activate @username PLAN MONTHS", "Manually activate/renew a customer's subscription."),
     ("/ban", "/ban @username", "Ban a user from using the bot."),
     ("/unban", "/unban @username", "Unban a previously banned user."),
     ("/dm", "/dm @username your message", "Send a direct message to one customer."),
@@ -827,7 +645,6 @@ OWNER_COMMANDS = [
     ("/addg", "/addg", "Add one or more marketplace groups (send usernames/links after)."),
     ("/add", "/add @m1 @m2 https://t.me/m3 ...", "Add marketplace groups directly, space-separated."),
     ("/addadbot", "/addadbot", "Add a new Ad Bot Account (interactive phone/code login)."),
-    ("/addadbot", "/addadbot @username", "Assign a free Ad Bot Account directly to that customer, skipping the queue."),
     ("/canceladd", "/canceladd", "Cancel an in-progress /addadbot session."),
     ("/accounts", "/accounts", "List every Ad Bot Account in the system with its status."),
     ("/login", "/login +15551234567", "Get a fresh login code + saved 2FA password for an account."),
@@ -835,11 +652,6 @@ OWNER_COMMANDS = [
     ("/occacc", "/occacc", "List every occupied Ad Bot Account, with its owner and slot."),
     ("/restricted", "/restricted", "List every restricted/banned Ad Bot Account (auto-rechecked daily)."),
     ("/removeno", "/removeno (number)", "Permanently delete an Ad Bot Account by ID — must be re-logged-in to use again."),
-    ("/lowquality", "/lowquality", "List marketplaces auto-demoted for consistently burying/deleting posts."),
-    ("/requality", "/requality (id)", "Give an auto-demoted marketplace another chance."),
-    ("/checkall", "/checkall", "Immediately @SpamBot-check every occupied account at the same time (concurrent sweep)."),
-    ("/temp1", "/temp1 @username", "Preview-only: shows exactly what a customer would receive if their account were replaced."),
-    ("/free", "/free +15551234567", "Pull a number off its current customer, SpamBot-check it, and return it to the free pool if clean."),
     ("/oc", "/oc", "Show this list of every owner command."),
 ]
 
@@ -869,35 +681,3 @@ async def cmd_owner_commands(message: Message):
             await message.reply(chunk, parse_mode="HTML")
     else:
         await message.reply(text, parse_mode="HTML")
-
-@router.message(Command("lowquality"))
-async def cmd_low_quality_marketplaces(message: Message):
-    """Owner-only: lists marketplaces the system has automatically stopped
-       posting to because they consistently bury/delete ads before anyone sees them."""
-    if not store.is_admin(message.from_user.id):
-        return
-    rows = await db.get_low_quality_marketplaces()
-    if not rows:
-        await message.reply("No marketplaces have been auto-demoted — everything's posting visibly.")
-        return
-    lines = ["<b>Auto-Demoted (Low Visibility) Marketplaces</b>", ""]
-    for r in rows:
-        label = f"@{r['chat_username']}" if r["chat_username"] and not str(r["chat_username"]).lstrip("-").isdigit() else str(r["chat_id"])
-        lines.append(f"ID {r['id']} — {label} — buried {r['buried_count']}/{r['checks']} checks")
-    lines.append("")
-    lines.append("These are automatically skipped by the posting rotation. Use /requality (id) to give one another chance.")
-    await message.reply("\n".join(lines), parse_mode="HTML")
-
-@router.message(Command("requality"))
-async def cmd_requality_marketplace(message: Message):
-    """Owner-only: resets an auto-demoted marketplace back to standard quality,
-       clearing its stats and letting the rotation post to it again."""
-    if not store.is_admin(message.from_user.id):
-        return
-    parts = message.text.split()
-    if len(parts) != 2 or not parts[1].isdigit():
-        await message.reply("Usage: /requality (marketplace ID number)\n\nSee IDs via /lowquality.")
-        return
-    marketplace_id = int(parts[1])
-    await db.reset_marketplace_quality(marketplace_id)
-    await message.reply(f"Marketplace ID {marketplace_id} reset to standard quality — it'll be included in posting rotations again.")
