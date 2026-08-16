@@ -18,19 +18,19 @@
       "ad_account_id": 4
     },
     {
-      "name": "AutoAdly @AutoAdlyAds",
+      "name": "AutoAdly",
       "ad_account_id": 12,
       "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
       "photo_file_id": null
     },
     {
-      "name": "AutoAdly @AutoAdlyAds",
+      "name": "AutoAdly",
       "ad_account_id": 13,
       "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
       "photo_file_id": null
     },
     {
-      "name": "AutoAdly @AutoAdlyAds",
+      "name": "AutoAdly",
       "ad_account_id": 14,
       "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
       "photo_file_id": null
@@ -64,7 +64,7 @@
     {
       "name": "AutoAdly",
       "ad_account_id": 6,
-      "bio": null,
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
       "photo_file_id": null
     }
   ],
