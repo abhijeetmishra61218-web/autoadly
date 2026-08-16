@@ -365,11 +365,31 @@ async def cmd_view(message: Message):
     await message.reply("\n".join(lines), parse_mode="HTML")
 
 
+def _chunk_lines(lines, max_len=3500):
+    """Groups lines into chunks that stay under Telegram's message length
+       limit, splitting on line boundaries so nothing gets cut mid-line."""
+    chunks = []
+    current = []
+    current_len = 0
+    for line in lines:
+        line_len = len(line) + 1  # +1 for the newline that'll join it
+        if current and current_len + line_len > max_len:
+            chunks.append("\n".join(current))
+            current = []
+            current_len = 0
+        current.append(line)
+        current_len += line_len
+    if current:
+        chunks.append("\n".join(current))
+    return chunks
+
+
 @router.message(Command("sweetspot"))
 async def cmd_sweetspot(message: Message):
     """Shows what the staggered low-quality sweet-spot scheduler is doing
        right now: which marketplaces are still testing (and at what slot/
-       interval/streak) and which have graduated to a fixed interval."""
+       interval/streak) and which have graduated to a fixed interval.
+       Usage: /sweetspot [ad_id] — omit ad_id to see every active ad."""
     import logging
     debug_logger = logging.getLogger("cmd_sweetspot")
     debug_logger.info(f"/sweetspot received from user_id={message.from_user.id}")
@@ -381,8 +401,20 @@ async def cmd_sweetspot(message: Message):
     try:
         import low_quality_stagger as lqs
 
+        parts = message.text.split()
+        filter_ad_id = None
+        if len(parts) > 1:
+            try:
+                filter_ad_id = int(parts[1])
+            except ValueError:
+                await message.reply("Usage: /sweetspot [ad_id]")
+                return
+
         states = await db.get_all_sweet_spot_states()
         debug_logger.info(f"/sweetspot: is_admin passed, {len(states)} state row(s) found")
+        if filter_ad_id is not None:
+            states = [s for s in states if s["ad_id"] == filter_ad_id]
+
         if not states:
             await message.reply("No low-quality marketplaces are being tracked by the sweet-spot scheduler right now.")
             return
@@ -391,25 +423,42 @@ async def cmd_sweetspot(message: Message):
         for s in states:
             by_ad.setdefault(s["ad_id"], []).append(s)
 
-        now = time.time()
-        lines = ["<b>Low-quality sweet-spot scheduler</b>", ""]
+        # Summary first — always small, always fits in one message, so you
+        # get the headline numbers even for a huge list.
+        summary_lines = ["<b>Low-quality sweet-spot scheduler</b>", ""]
         for ad_id, rows in by_ad.items():
-            lines.append(f"<b>Ad #{ad_id}</b>")
+            testing = sum(1 for s in rows if s["state"] == "testing")
+            graduated = sum(1 for s in rows if s["state"] == "graduated")
+            summary_lines.append(f"<b>Ad #{ad_id}</b> — {len(rows)} tracked — {testing} testing, {graduated} graduated")
+        if filter_ad_id is None and len(by_ad) > 1:
+            summary_lines.append("")
+            summary_lines.append("Tip: /sweetspot &lt;ad_id&gt; to see just one ad's detail.")
+        await message.reply("\n".join(summary_lines), parse_mode="HTML")
+
+        # Detail, chunked across as many messages as needed so it never hits
+        # Telegram's ~4096 char limit no matter how many marketplaces there are.
+        now = time.time()
+        detail_lines = []
+        for ad_id, rows in by_ad.items():
+            detail_lines.append(f"<b>Ad #{ad_id}</b>")
             for s in rows:
                 interval_min = s["interval_seconds"] // 60
                 username = s["chat_username"]
                 label = f"@{username}" if username and not str(username).lstrip("-").isdigit() else str(username)
                 if s["state"] == "graduated":
-                    lines.append(f"  ✅ {label} — graduated — fixed {interval_min}min interval")
+                    detail_lines.append(f"  ✅ {label} — graduated — fixed {interval_min}min interval")
                 else:
                     eta = max(0, int(s["next_run_at"] - now))
-                    lines.append(
+                    detail_lines.append(
                         f"  ⏳ {label} — testing, slot {s['slot_index']} ({interval_min}min) — "
                         f"streak {s['streak']}/{lqs.GRADUATION_STREAK} — next attempt in {eta // 60}m{eta % 60}s"
                     )
-            lines.append("")
+            detail_lines.append("")
 
-        await message.reply("\n".join(lines).strip(), parse_mode="HTML")
+        for chunk in _chunk_lines(detail_lines):
+            if chunk.strip():
+                await message.answer(chunk, parse_mode="HTML")
+
         debug_logger.info("/sweetspot: reply sent successfully")
     except Exception:
         debug_logger.exception("/sweetspot: unhandled exception while building/sending reply")
