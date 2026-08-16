@@ -213,6 +213,7 @@ def _account_edit_rows(idx, assigned=True):
         rows.append([{"text": "Edit Username", "callback_data": f"myad:editusername:{idx}"}])
     rows.append([{"text": "Edit Photo", "callback_data": f"myad:editphoto:{idx}"}])
     rows.append([{"text": "Copy Your Profile", "callback_data": f"myad:copyprofile:{idx}"}])
+    rows.append([{"text": "Copy Someone Else Profile", "callback_data": f"myad:copyother:{idx}"}])
     rows.append([{"text": "Back", "callback_data": "myad:manage"}])
     return rows
 
@@ -259,6 +260,33 @@ async def cb_copy_profile(callback: CallbackQuery):
         print(f"[copy_profile] photo copy failed: {e}")
     await bot_api.session.close()
     await callback.answer("Profile copied to your Ad Bot Account." if ok_name else "Copy partially failed, please try again.", show_alert=True)
+
+@router.callback_query(F.data.startswith("myad:copyother:"))
+async def cb_copy_other_profile(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    try:
+        idx = int(callback.data.split(":", 2)[2])
+    except (TypeError, ValueError):
+        await callback.answer("Invalid account.", show_alert=True)
+        return
+
+    adbots = store.get_customer_adbots(user_id)
+    if idx < 0 or idx >= len(adbots):
+        await callback.answer("Account not found.", show_alert=True)
+        return
+
+    slot = adbots[idx]
+    if slot.get("ad_account_id") is None:
+        await callback.answer("This AdBot account is pending. It has not been assigned yet.", show_alert=True)
+        return
+
+    EDIT_PENDING[user_id] = {"step": "await_copy_other_username", "index": idx}
+    await callback.message.answer(
+        "Send the Telegram username of the account whose profile you want to copy.\n\n"
+        "Example: @exampleuser\n"
+        "You can also send it without @."
+    )
+    await callback.answer()
 
 @router.callback_query(F.data.startswith("myad:manage_one:"))
 async def cb_manage_one(callback: CallbackQuery):
@@ -322,6 +350,75 @@ async def on_edit_text(message: Message):
             store.set_dashboard_image(None)
             EDIT_PENDING.pop(user_id, None)
             await message.reply("Dashboard photo removed.")
+        return
+
+    if step == "await_copy_other_username":
+        import re
+        username = message.text.strip().lstrip("@")
+
+        if not re.fullmatch(r"[A-Za-z0-9_]{5,32}", username):
+            await message.reply("That doesn't look like a valid Telegram username. Please send something like @exampleuser.")
+            return
+
+        idx = pending.get("index")
+        adbots = store.get_customer_adbots(user_id)
+        if idx is None or idx < 0 or idx >= len(adbots):
+            EDIT_PENDING.pop(user_id, None)
+            await message.reply("That Ad Bot Account could not be found.")
+            return
+
+        slot = adbots[idx]
+        if slot.get("ad_account_id") is None:
+            EDIT_PENDING.pop(user_id, None)
+            await message.reply("This AdBot account is pending. It has not been assigned yet.")
+            return
+
+        try:
+            client = await engine.get_client(slot["ad_account_id"])
+            profile = await pu.fetch_profile_from_username(client, username)
+
+            if not profile:
+                EDIT_PENDING.pop(user_id, None)
+                await message.reply("I couldn't access that Telegram profile. Please check the username and try again.")
+                return
+
+            base_name = profile["name"]
+            bio = profile["bio"]
+            photo_bytes = profile["photo_bytes"]
+
+            # Store the base profile name only — slot_display_name() adds #1/#2/etc.
+            store.rename_customer_adbot(user_id, idx, base_name)
+            store.set_slot_bio(user_id, idx, bio)
+
+            if photo_bytes:
+                store.set_slot_photo(user_id, idx, None)
+                store.set_slot_cached_photo(user_id, idx, photo_bytes)
+            else:
+                store.set_slot_photo(user_id, idx, None)
+                store.set_slot_cached_photo(user_id, idx, None)
+
+            current_slot = store.get_customer_adbots(user_id)[idx]
+            display_name = store.slot_display_name(current_slot, idx)
+
+            ok_name = await pu.update_name_bio(client, display_name, bio)
+            photo_ok = True
+            if photo_bytes:
+                photo_ok = await pu.update_photo_from_bytes(client, photo_bytes)
+
+            EDIT_PENDING.pop(user_id, None)
+
+            if ok_name and photo_ok:
+                await message.reply(f"Profile copied successfully. The account now appears as {display_name}.")
+            elif ok_name:
+                await message.reply(f"Name and bio copied to {display_name}, but the profile photo could not be updated.")
+            else:
+                await message.reply("The profile was saved, but the live Ad Bot update failed.")
+
+        except Exception as e:
+            print(f"[copy_other_profile] failed user={user_id} slot={idx} username={username}: {e}")
+            EDIT_PENDING.pop(user_id, None)
+            await message.reply("I couldn't access that Telegram profile. Please check the username and try again.")
+
         return
 
     idx = pending.get("index")
