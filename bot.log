@@ -1,2 +1,950 @@
 nohup: ignoring input
 INFO:aiogram.dispatcher:Start polling
+INFO:telethon.network.mtprotosender:Connecting to 149.154.175.60:443/TcpFull...
+INFO:telethon.network.mtprotosender:Connecting to 149.154.175.60:443/TcpFull...
+INFO:telethon.network.mtprotosender:Connecting to 149.154.175.54:443/TcpFull...
+INFO:telethon.network.mtprotosender:Connecting to 91.108.56.129:443/TcpFull...
+INFO:telethon.network.mtprotosender:Connecting to 91.108.56.129:443/TcpFull...
+INFO:telethon.network.mtprotosender:Connecting to 149.154.175.54:443/TcpFull...
+INFO:telethon.network.mtprotosender:Connecting to 91.108.56.157:443/TcpFull...
+INFO:telethon.network.mtprotosender:Connecting to 149.154.175.54:443/TcpFull...
+INFO:telethon.network.mtprotosender:Connecting to 91.108.56.129:443/TcpFull...
+INFO:telethon.network.mtprotosender:Connecting to 149.154.175.60:443/TcpFull...
+INFO:telethon.network.mtprotosender:Connecting to 149.154.175.60:443/TcpFull...
+INFO:telethon.network.mtprotosender:Connection to 149.154.175.60:443/TcpFull complete!
+INFO:telethon.network.mtprotosender:Connection to 149.154.175.60:443/TcpFull complete!
+INFO:telethon.network.mtprotosender:Connection to 149.154.175.54:443/TcpFull complete!
+INFO:telethon.network.mtprotosender:Connection to 149.154.175.60:443/TcpFull complete!
+INFO:telethon.network.mtprotosender:Connection to 149.154.175.54:443/TcpFull complete!
+INFO:telethon.network.mtprotosender:Connection to 149.154.175.54:443/TcpFull complete!
+INFO:telethon.network.mtprotosender:Connection to 149.154.175.60:443/TcpFull complete!
+INFO:telethon.network.mtprotosender:Connection to 91.108.56.157:443/TcpFull complete!
+INFO:telethon.network.mtprotosender:Connection to 91.108.56.129:443/TcpFull complete!
+INFO:telethon.network.mtprotosender:Connection to 91.108.56.129:443/TcpFull complete!
+INFO:telethon.network.mtprotosender:Connection to 91.108.56.129:443/TcpFull complete!
+INFO:aiogram.dispatcher:Run polling for bot @AutoAdlyBot id=8814610046 - 'Auto Adly'
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.users:Sleeping for 7s (0:00:07) on ForwardMessagesRequest flood wait
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2323662722 updates
+INFO:telethon.client.users:Sleeping for 8s (0:00:08) on ForwardMessagesRequest flood wait
+INFO:telethon.client.users:Sleeping for 9s (0:00:09) on ForwardMessagesRequest flood wait
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.322556 seconds and try again... (tryings = 1, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.users:Sleeping for 4s (0:00:04) on ForwardMessagesRequest flood wait
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2323662722 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:ad_engine:Posted to GooMarketplace
+INFO:telethon.client.users:Sleeping for 4s (0:00:04) on ForwardMessagesRequest flood wait
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.users:Sleeping for 3s (0:00:03) on ForwardMessagesRequest flood wait
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2080984772 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2323662722 updates
+INFO:telethon.client.updates:Got difference for channel 1976519716 updates
+INFO:telethon.client.updates:Got difference for channel 2011482119 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1168540949 updates
+INFO:ad_engine:Posted to GooMarketplace
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.users:Sleeping for 2s (0:00:02) on ForwardMessagesRequest flood wait
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.831847 seconds and try again... (tryings = 2, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1415488864 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to CryptoZackLounge (slot interval=300s)
+INFO:low_quality_stagger:low_quality_stagger: test-posted to CryptoZackLounge (slot interval=300s)
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to CryptoZackLounge (slot interval=300s)
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2323662722 updates
+INFO:telethon.client.updates:Got difference for channel 2323662722 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2528685086 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 2146109894 updates
+INFO:ad_engine:Posted to 2146109894
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1278148687 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to CryptoZackLounge (slot interval=300s)
+INFO:low_quality_stagger:low_quality_stagger: test-posted to CryptoZackLounge (slot interval=300s)
+INFO:low_quality_stagger:low_quality_stagger: test-posted to CryptoZackLounge (slot interval=300s)
+INFO:telethon.client.users:Sleeping for 58s (0:00:58) on ForwardMessagesRequest flood wait
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to CryptoZackLounge (slot interval=300s)
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2465535730 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to CryptoZackLounge (slot interval=300s)
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2323662722 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2096795818 updates
+INFO:telethon.client.updates:Got difference for channel 2096795818 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 2.210721 seconds and try again... (tryings = 3, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 2.865722 seconds and try again... (tryings = 4, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2465535730 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2465535730 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1168540949 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1168540949 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1278148687 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2173747260 updates
+INFO:telethon.client.updates:Got difference for channel 2173747260 updates
+INFO:telethon.client.updates:Got difference for channel 1278148687 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:ad_engine:Skipped marketplace 61: Could not find the input entity for PeerChannel(channel_id=4474803280) (PeerChannel). Please read https://docs.telethon.dev/en/stable/concepts/entities.html to find out more details.
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 3.645216 seconds and try again... (tryings = 5, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1415488864 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 4.592351 seconds and try again... (tryings = 6, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2080984772 updates
+INFO:telethon.client.users:Sleeping early for 29s (0:00:29) on ForwardMessagesRequest flood wait
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:ad_engine:Skipped marketplace 91: A wait of 3598 seconds is required before sending another message in this chat (caused by ForwardMessagesRequest)
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 5.010809 seconds and try again... (tryings = 7, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2323662722 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2528685086 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1923324680 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2012468036 updates
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 1168540949 updates
+INFO:telethon.client.updates:Got difference for channel 1976519716 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 2011482119 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2011482119 updates
+INFO:telethon.client.updates:Got difference for channel 2146109894 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 1987613424 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1168540949 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 1168540949 updates
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2528685086 updates
+INFO:telethon.client.updates:Got difference for channel 2528685086 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 1976519716 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 5.018722 seconds and try again... (tryings = 8, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 1987613424 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:ad_engine:Posted to orbisgroup2
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:ad_engine:Skipped marketplace 58: Could not find the input entity for PeerChannel(channel_id=1415488864) (PeerChannel). Please read https://docs.telethon.dev/en/stable/concepts/entities.html to find out more details.
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 5.056110 seconds and try again... (tryings = 9, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 2244131351 updates
+INFO:telethon.client.updates:Got difference for channel 2244131351 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to CryptoZackLounge (slot interval=300s)
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:ad_engine:Posted to ofmjoin
+INFO:telethon.client.updates:Got difference for channel 1923324680 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:ad_engine:Posted to ofmworkk
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2244131351 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 5.097448 seconds and try again... (tryings = 10, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 4.979940 seconds and try again... (tryings = 11, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 1513828789 updates
+INFO:telethon.client.updates:Got difference for channel 1513828789 updates
+INFO:telethon.client.updates:Got difference for channel 1513828789 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 5.121620 seconds and try again... (tryings = 12, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2244131351 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2244131351 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2011482119 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1168540949 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1923324680 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1923324680 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2528685086 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2080984772 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2080984772 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2012468036 updates
+INFO:telethon.client.updates:Got difference for channel 1976519716 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2012468036 updates
+INFO:telethon.client.updates:Got difference for channel 2244131351 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2244131351 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 2146109894 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2146109894 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 2011482119 updates
+INFO:telethon.client.updates:Got difference for channel 1939686963 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 1923324680 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2173747260 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2011482119 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 1278148687 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 1168540949 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 5.193334 seconds and try again... (tryings = 13, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 1168540949 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2447908375 updates
+INFO:telethon.client.updates:Got difference for channel 2002683478 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2002683478 updates
+INFO:telethon.client.updates:Got difference for channel 2528685086 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 1976519716 updates
+INFO:telethon.client.updates:Got difference for channel 2528685086 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1513828789 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 1976519716 updates
+INFO:telethon.client.updates:Got difference for channel 1987613424 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 1987613424 updates
+INFO:telethon.client.updates:Got difference for channel 2199697522 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1939686963 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2199697522 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1939686963 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 2004645433 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 2173747260 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2096795818 updates
+INFO:telethon.client.updates:Got difference for channel 2096795818 updates
+INFO:telethon.client.updates:Got difference for channel 2004645433 updates
+INFO:telethon.client.updates:Got difference for channel 2173747260 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:aiogram.dispatcher:Connection established (tryings = 14, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:aiogram.event:Update id=392306536 is not handled. Duration 577 ms by bot id=8814610046
+ERROR:aiogram.event:Cause exception while process update id=392306536 by bot id=8814610046
+TelegramBadRequest: Telegram server says - Bad Request: message is too long
+Traceback (most recent call last):
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/ban_middleware.py", line 18, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/join_middleware.py", line 40, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        observer=observer, update_type=update_type, event=telegram_event, **data
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        observer=observer, update_type=update_type, event=telegram_event, **data
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/admin_commands.py", line 405, in cmd_sweetspot
+    await message.reply("\n".join(lines).strip(), parse_mode="HTML")
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/methods/base.py", line 84, in emit
+    return await bot(self)
+           ^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/client/bot.py", line 485, in __call__
+    return await self.session(self, method, timeout=request_timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/client/session/base.py", line 254, in __call__
+    return cast(TelegramType, await middleware(bot, method))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/client/session/aiohttp.py", line 185, in make_request
+    response = self.check_response(
+        bot=bot, method=method, status_code=resp.status, content=raw_result
+    )
+  File "/home/mishradatastore1/bot_project_clean/.venv/lib/python3.13/site-packages/aiogram/client/session/base.py", line 120, in check_response
+    raise TelegramBadRequest(method=method, message=description)
+aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: message is too long
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2096795818 updates
+INFO:telethon.client.updates:Got difference for channel 2096795818 updates
+INFO:telethon.client.updates:Got difference for channel 2096795818 updates
+INFO:telethon.client.updates:Got difference for channel 2096795818 updates
+INFO:telethon.client.updates:Got difference for channel 2096795818 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1923324680 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1923324680 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 2244131351 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 2244131351 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2465535730 updates
+INFO:telethon.client.updates:Got difference for channel 2465535730 updates
+INFO:telethon.client.updates:Got difference for channel 2465535730 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.307794 seconds and try again... (tryings = 1, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to linopubchat (slot interval=600s)
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to linopubchat (slot interval=600s)
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:ad_engine:Posted to ofmjoin
+INFO:low_quality_stagger:low_quality_stagger: test-posted to linopubchat (slot interval=600s)
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.755223 seconds and try again... (tryings = 2, bot id = 8814610046)
+INFO:ad_engine:Posted to ofmjoin
+INFO:low_quality_stagger:low_quality_stagger: test-posted to linopubchat (slot interval=600s)
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:ad_engine:Skipped marketplace 48: Could not find the input entity for PeerChannel(channel_id=4474803280) (PeerChannel). Please read https://docs.telethon.dev/en/stable/concepts/entities.html to find out more details.
+INFO:ad_engine:Posted to market_fn
+INFO:telethon.client.updates:Got difference for channel 1887600850 updates
+INFO:telethon.client.updates:Got difference for channel 1887600850 updates
+INFO:telethon.client.updates:Got difference for channel 1887600850 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to linopubchat (slot interval=600s)
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to linopubchat (slot interval=600s)
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 2011482119 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:ad_engine:Posted to securedmarts
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:ad_engine:Skipped marketplace 47: Could not find the input entity for PeerChannel(channel_id=4474803280) (PeerChannel). Please read https://docs.telethon.dev/en/stable/concepts/entities.html to find out more details.
+INFO:telethon.client.updates:Got difference for channel 2323662722 updates
+INFO:telethon.client.updates:Got difference for channel 1168540949 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to linopubchat (slot interval=600s)
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2323662722 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to linopubchat (slot interval=600s)
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 2.314874 seconds and try again... (tryings = 3, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 2528685086 updates
+INFO:telethon.client.updates:Got difference for channel 2096795818 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1987613424 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1939686963 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.users:Sleeping for 44s (0:00:44) on ForwardMessagesRequest flood wait
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:low_quality_stagger:low_quality_stagger: test-posted to linopubchat (slot interval=600s)
+INFO:telethon.client.updates:Got difference for channel 2323662722 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 1741213429 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 2.977100 seconds and try again... (tryings = 4, bot id = 8814610046)
+INFO:ad_engine:Skipped marketplace 62: Could not find the input entity for PeerChannel(channel_id=4474803280) (PeerChannel). Please read https://docs.telethon.dev/en/stable/concepts/entities.html to find out more details.
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 1887600850 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2096795818 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 1294454616 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:ad_engine:Skipped marketplace 47: You can't send gifs in this chat (caused by ForwardMessagesRequest)
+INFO:telethon.client.updates:Got difference for channel 1887600850 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1513828789 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 3.888925 seconds and try again... (tryings = 5, bot id = 8814610046)
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2035477675 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 2191594970 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2403320794 updates
+INFO:telethon.client.updates:Got difference for channel 1852019563 updates
+INFO:telethon.client.updates:Got difference for channel 2148536458 updates
+INFO:telethon.client.updates:Got difference for channel 2399624593 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
+INFO:telethon.client.updates:Got difference for channel 1584061833 updates
+INFO:telethon.client.updates:Got difference for channel 2066254327 updates
+INFO:ad_engine:Skipped marketplace 92: A wait of 898 seconds is required before sending another message in this chat (caused by ForwardMessagesRequest)
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 1636178438 updates
+INFO:telethon.client.updates:Got difference for channel 1815261713 updates
+INFO:telethon.client.updates:Got difference for channel 2442347480 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2305538353 updates
+INFO:telethon.client.updates:Got difference for channel 2091565855 updates
+INFO:telethon.client.updates:Got difference for channel 2060897480 updates
+INFO:telethon.client.updates:Got difference for channel 1573705237 updates
+INFO:telethon.client.updates:Got difference for channel 1624196878 updates
+INFO:telethon.client.updates:Got difference for channel 2454249021 updates
+INFO:telethon.client.updates:Got difference for channel 1676369027 updates
