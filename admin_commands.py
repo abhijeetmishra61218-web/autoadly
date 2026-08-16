@@ -370,39 +370,53 @@ async def cmd_sweetspot(message: Message):
     """Shows what the staggered low-quality sweet-spot scheduler is doing
        right now: which marketplaces are still testing (and at what slot/
        interval/streak) and which have graduated to a fixed interval."""
+    import logging
+    debug_logger = logging.getLogger("cmd_sweetspot")
+    debug_logger.info(f"/sweetspot received from user_id={message.from_user.id}")
+
     if not store.is_admin(message.from_user.id):
+        debug_logger.info(f"/sweetspot: user_id={message.from_user.id} failed is_admin check — ignoring")
         return
 
-    import low_quality_stagger as lqs
+    try:
+        import low_quality_stagger as lqs
 
-    states = await db.get_all_sweet_spot_states()
-    if not states:
-        await message.reply("No low-quality marketplaces are being tracked by the sweet-spot scheduler right now.")
-        return
+        states = await db.get_all_sweet_spot_states()
+        debug_logger.info(f"/sweetspot: is_admin passed, {len(states)} state row(s) found")
+        if not states:
+            await message.reply("No low-quality marketplaces are being tracked by the sweet-spot scheduler right now.")
+            return
 
-    by_ad = {}
-    for s in states:
-        by_ad.setdefault(s["ad_id"], []).append(s)
+        by_ad = {}
+        for s in states:
+            by_ad.setdefault(s["ad_id"], []).append(s)
 
-    now = time.time()
-    lines = ["<b>Low-quality sweet-spot scheduler</b>", ""]
-    for ad_id, rows in by_ad.items():
-        lines.append(f"<b>Ad #{ad_id}</b>")
-        for s in rows:
-            interval_min = s["interval_seconds"] // 60
-            username = s["chat_username"]
-            label = f"@{username}" if username and not str(username).lstrip("-").isdigit() else str(username)
-            if s["state"] == "graduated":
-                lines.append(f"  ✅ {label} — graduated — fixed {interval_min}min interval")
-            else:
-                eta = max(0, int(s["next_run_at"] - now))
-                lines.append(
-                    f"  ⏳ {label} — testing, slot {s['slot_index']} ({interval_min}min) — "
-                    f"streak {s['streak']}/{lqs.GRADUATION_STREAK} — next attempt in {eta // 60}m{eta % 60}s"
-                )
-        lines.append("")
+        now = time.time()
+        lines = ["<b>Low-quality sweet-spot scheduler</b>", ""]
+        for ad_id, rows in by_ad.items():
+            lines.append(f"<b>Ad #{ad_id}</b>")
+            for s in rows:
+                interval_min = s["interval_seconds"] // 60
+                username = s["chat_username"]
+                label = f"@{username}" if username and not str(username).lstrip("-").isdigit() else str(username)
+                if s["state"] == "graduated":
+                    lines.append(f"  ✅ {label} — graduated — fixed {interval_min}min interval")
+                else:
+                    eta = max(0, int(s["next_run_at"] - now))
+                    lines.append(
+                        f"  ⏳ {label} — testing, slot {s['slot_index']} ({interval_min}min) — "
+                        f"streak {s['streak']}/{lqs.GRADUATION_STREAK} — next attempt in {eta // 60}m{eta % 60}s"
+                    )
+            lines.append("")
 
-    await message.reply("\n".join(lines).strip(), parse_mode="HTML")
+        await message.reply("\n".join(lines).strip(), parse_mode="HTML")
+        debug_logger.info("/sweetspot: reply sent successfully")
+    except Exception:
+        debug_logger.exception("/sweetspot: unhandled exception while building/sending reply")
+        try:
+            await message.reply(f"/sweetspot hit an internal error — check crash_log.txt for the traceback.")
+        except Exception:
+            debug_logger.exception("/sweetspot: even the fallback error reply failed to send")
 
 
 @router.message(Command("cancel"))
