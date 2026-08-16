@@ -151,7 +151,7 @@ async def _run_testing(ad_cache, ad_id, marketplace_id):
                 continue
 
             await db.log_success(ad["ad_account_id"], marketplace_id, link)
-            logger.info(f"low_quality_stagger: test-posted to {marketplace.get('chat_username')} (slot interval={interval}s)")
+            logger.info(f"low_quality_stagger: test-posted to {marketplace['chat_username']} (slot interval={interval}s)")
 
             visible = True
             if msg_id:
@@ -170,7 +170,7 @@ async def _run_testing(ad_cache, ad_id, marketplace_id):
                 list_id = await _get_or_create_sweet_spot_list(ad_id, interval)
                 await db.add_marketplace_to_all_lists(marketplace_id, list_id=list_id)  # generic "add to list" helper, despite the name
                 await db.graduate_sweet_spot_state(ad_id, marketplace_id, list_id)
-                logger.info(f"low_quality_stagger: {marketplace.get('chat_username')} suits {interval}s — graduated to a fixed schedule")
+                logger.info(f"low_quality_stagger: {marketplace['chat_username']} suits {interval}s — graduated to a fixed schedule")
                 break  # the discovery loop below picks this up and starts _run_graduated for it
             else:
                 await db.update_sweet_spot_progress(ad_id, marketplace_id, time.time() + interval, streak)
@@ -220,7 +220,7 @@ async def _run_graduated(ad_cache, ad_id, marketplace_id):
                 break
 
             await db.log_success(ad["ad_account_id"], marketplace_id, link)
-            logger.info(f"low_quality_stagger: posted to {marketplace.get('chat_username')} (fixed interval={interval}s)")
+            logger.info(f"low_quality_stagger: posted to {marketplace['chat_username']} (fixed interval={interval}s)")
 
             if msg_id:
                 await asyncio.sleep(VISIBILITY_CHECK_DELAY_SECONDS)
