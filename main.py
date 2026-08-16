@@ -16,6 +16,16 @@ import github_backup
 import subscription_expiry
 import engine
 
+import fcntl
+import sys
+
+_lock_file = open("/tmp/autoadly_bot.lock", "w")
+try:
+    fcntl.flock(_lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError:
+    print("Another instance of the bot is already running. Exiting.")
+    sys.exit(1)
+
 async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
