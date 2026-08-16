@@ -52,17 +52,24 @@ async def update_name_bio(client, display_name, bio):
     print(f"[profile_updater] name/bio update did not verify — Telegram accepted the request but the profile did not actually change (display_name={display_name!r}).")
     return False
 
+import re
+
+def _sanitize_username_base(raw):
+    return re.sub(r"[^a-z0-9]", "", (raw or "").lower())
+
 async def update_username(client, desired_username):
-    desired_username = (desired_username or random_name()).lower()
-    for attempt in range(5):
-        candidate = desired_username if attempt == 0 else f"{desired_username}{random.randint(10,999)}"
+    base = _sanitize_username_base(desired_username) or _sanitize_username_base(random_name())
+    attempt = 0
+    while attempt <= 200:
+        candidate = base if attempt == 0 else f"{base}{attempt}"
+        candidate = candidate[:32]
         try:
             await client(CheckUsernameRequest(candidate))
             await client(UpdateUsernameRequest(candidate))
             return candidate
         except (UsernameOccupiedError, UsernameInvalidError):
-            continue
-    print("[profile_updater] Could not find an available username after 5 attempts.")
+            attempt += 1
+    print(f"[profile_updater] Could not find an available username based on {base!r} after 200 attempts.")
     return None
 
 async def update_photo(client, bot, photo_file_id):

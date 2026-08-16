@@ -106,6 +106,11 @@ async def request_accounts_for_customer(user_id, chat_id, quota):
 
     return assigned_any
 
+async def _buyer_username_base(user_id):
+    chat = await raw_api.get_chat(user_id)
+    name = (chat or {}).get("first_name") or (chat or {}).get("username") or "user"
+    return f"{name}autoadly"
+
 async def _assign_account(chat_id, msg_id, user_id, account_id, send_new=False):
     await db.mark_ad_account_status_no_fulfill(account_id, "occupied")
 
@@ -136,7 +141,7 @@ async def _assign_account(chat_id, msg_id, user_id, account_id, send_new=False):
 
     client = await engine.get_client(account_id)
     await pu.update_name_bio(client, display_name, bio)
-    await pu.update_username(client, None)
+    await pu.update_username(client, await _buyer_username_base(user_id))
     if photo_file_id:
         try:
             bot_api = Bot(token=config.BOT_TOKEN)
@@ -628,7 +633,7 @@ async def fulfill_replacement(user_id, index, new_account_id, ad_config, old_pro
 
     client = await engine.get_client(new_account_id)
     await pu.update_name_bio(client, display_name, bio)
-    await pu.update_username(client, None)
+    await pu.update_username(client, await _buyer_username_base(user_id))
 
     photo_file_id = slot.get("photo_file_id")
     if photo_file_id:

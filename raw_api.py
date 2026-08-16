@@ -51,6 +51,12 @@ async def send_message(chat_id, text, rows_spec, photo=None, parse_mode="HTML"):
             payload["text"] = text
             return await _post(session, f"{TG_API}/sendMessage", payload)
 
+async def get_chat(chat_id):
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f"{TG_API}/getChat", json={"chat_id": chat_id}) as r:
+            data = await r.json()
+            return data.get("result") if data.get("ok") else None
+
 async def delete_message(chat_id, message_id):
     async with aiohttp.ClientSession() as session:
         async with session.post(f"{TG_API}/deleteMessage", json={"chat_id": chat_id, "message_id": message_id}) as r:
