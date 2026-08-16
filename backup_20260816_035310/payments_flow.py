@@ -1,0 +1,354 @@
+"""
+AutoAdly - Buyer payment flow (crypto -> subscription activation)
+"""
+
+import time
+import asyncio
+import uuid
+from aiogram import Router, F
+from aiogram.types import CallbackQuery, Message
+
+import raw_api
+import content_store as store
+import payments_engine as pe
+
+router = Router()
+
+PAY_WINDOW_SECONDS = 15 * 60
+BTC_PAY_WINDOW_SECONDS = 60 * 60  # BTC gets a longer window — confirmations are slower
+COUNTDOWN_TICK = 1
+SCAN_TICK = 5
+
+def _pay_window_seconds(cid):
+    return BTC_PAY_WINDOW_SECONDS if cid == "btc" else PAY_WINDOW_SECONDS
+
+ORDERS = {}
+COUNTDOWN_TASKS = {}
+SCAN_TASKS = {}
+
+CRYPTO_DISPLAY_ORDER = ["btc", "eth", "ltc", "sol", "usdt_trc20", "usdt_bep20", "usdc_erc20", "usdc_sol"]
+
+def _cancel(tasks_dict, user_id):
+    t = tasks_dict.pop(user_id, None)
+    if t and not t.done():
+        t.cancel()
+
+def _picker_rows():
+    enabled = {c["id"]: c for c in pe.enabled_cryptos()}
+    ordered = [enabled[cid] for cid in CRYPTO_DISPLAY_ORDER if cid in enabled]
+    # any enabled crypto not in the known order list still shows up, appended at the end
+    ordered += [c for c in enabled.values() if c["id"] not in CRYPTO_DISPLAY_ORDER]
+
+    rows = []
+    row = []
+    for c in ordered:
+        btn = {"text": c["name"], "callback_data": f"pay:pick:{c['id']}"}
+        if c.get("emoji_id"):
+            btn["emoji_id"] = c["emoji_id"]
+        row.append(btn)
+        if len(row) == 2:
+            rows.append(row)
+            row = []
+    if row:
+        rows.append(row)
+    rows.append([{"text": "Cancel", "callback_data": "pay:cancel"}])
+    return rows
+
+def _mmss(seconds):
+    seconds = max(0, int(seconds))
+    return "%02d:%02d" % (seconds // 60, seconds % 60)
+
+def _order_text(order, remaining):
+    username = order.get("username")
+    username_display = f"@{username}" if username else "N/A"
+    amount_num = pe.fmt_crypto(order["crypto_amount"], order["decimals"])
+    lines = [
+        f"Plan: {order['plan_name']}",
+        f"Duration: {order['months']} Month" + ("s" if order["months"] != 1 else ""),
+        f"Username: {username_display}",
+        f"Payment Method: {order['crypto_name']}",
+        f"Amount: {amount_num} {order['crypto_name']}",
+        "",
+        f"Time Remaining: {_mmss(remaining)}",
+        "",
+        f"Please send exactly <code>{amount_num}</code> {order['crypto_name']} to the wallet address below:",
+        "",
+        f"<code>{order['address']}</code>",
+        "",
+        "After completing the payment, please paste the transaction hash (TXID) in the chat.",
+    ]
+    return "\n".join(lines)
+
+async def start_payment(callback: CallbackQuery, plan):
+    user_id = callback.from_user.id
+    _cancel(COUNTDOWN_TASKS, user_id)
+    _cancel(SCAN_TASKS, user_id)
+
+    # Clean up any abandoned order message from a previous incomplete flow
+    old_order = ORDERS.get(user_id)
+    if old_order and old_order.get("chat_id") and old_order.get("msg_id"):
+        try:
+            await raw_api.delete_message(old_order["chat_id"], old_order["msg_id"])
+        except Exception:
+            pass
+
+    if not pe.enabled_cryptos():
+        await raw_api.render(
+            callback.message.chat.id, callback.message.message_id,
+            "Payment is not available right now — no cryptocurrency is configured. Please contact support.",
+            [[{"text": "Back", "callback_data": f"plan:{plan['id']}"}]],
+        )
+        return
+
+    price_str = plan["price"].replace("$", "").replace("/month", "").strip()
+    try:
+        usd = float(price_str)
+    except Exception:
+        usd = 0.0
+
+    order_token = uuid.uuid4().hex
+    ORDERS[user_id] = {
+        "token": order_token,
+        "state": "choosing", "plan_id": plan["id"], "plan_name": plan["name"], "usd": usd,
+        "months": 1, "username": callback.from_user.username,
+        "chat_id": callback.message.chat.id, "msg_id": callback.message.message_id,
+    }
+    result = await raw_api.render(
+        callback.message.chat.id, callback.message.message_id,
+        f"<b>{plan['name']} Plan — {plan['price']}</b>\n\nChoose your payment method:",
+        _picker_rows(),
+    )
+    new_id = raw_api.new_message_id(result)
+    if new_id:
+        ORDERS[user_id]["msg_id"] = new_id
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("pay:pick:"))
+async def cb_pick_crypto(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    order = ORDERS.get(user_id)
+    if not order:
+        await callback.answer("Session expired, please tap Buy Now again.", show_alert=True)
+        return
+    cid = callback.data.split(":", 2)[2]
+    crypto = pe.get_crypto(cid)
+    if not crypto or not crypto.get("enabled") or not crypto.get("address"):
+        await callback.answer("That option is unavailable.", show_alert=True)
+        return
+
+    crypto_amount, _price = pe.usd_to_crypto(order["usd"], crypto)
+    if crypto_amount is None:
+        await callback.answer("Price feed unavailable, please pick another crypto.", show_alert=True)
+        return
+
+    order.update({
+        "state": "await_payment", "cid": cid, "crypto_name": crypto["name"],
+        "crypto_amount": float(crypto_amount), "address": crypto["address"],
+        "decimals": int(crypto.get("decimals", 8)), "is_stable": bool(crypto.get("is_usd_stable")),
+        "min_conf": int(crypto.get("min_conf", 1)), "deadline": time.time() + _pay_window_seconds(cid),
+        "started_at": time.time(), "hash": None,
+    })
+    ORDERS[user_id] = order
+
+    remaining = int(order["deadline"] - time.time())
+    result = await raw_api.render(order["chat_id"], order["msg_id"], _order_text(order, remaining), [[{"text": "Cancel", "callback_data": "pay:cancel"}]])
+    new_id = raw_api.new_message_id(result)
+    if new_id:
+        order["msg_id"] = new_id
+        ORDERS[user_id] = order
+    await callback.answer()
+
+    COUNTDOWN_TASKS[user_id] = asyncio.create_task(_countdown(user_id, order["token"]))
+    SCAN_TASKS[user_id] = asyncio.create_task(_auto_scan(user_id, order["token"]))
+
+@router.callback_query(F.data == "pay:cancel")
+async def cb_cancel(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    _cancel(COUNTDOWN_TASKS, user_id)
+    _cancel(SCAN_TASKS, user_id)
+    ORDERS.pop(user_id, None)
+    try:
+        await raw_api.delete_message(callback.message.chat.id, callback.message.message_id)
+    except Exception:
+        pass
+    await callback.answer("Cancelled.")
+
+async def _countdown(user_id, order_token):
+    last_shown = None
+    while True:
+        try:
+            order = ORDERS.get(user_id)
+            if not order or order.get("token") != order_token or order.get("state") != "await_payment":
+                return  # order was replaced or cancelled — do not touch anything
+            remaining = int(order["deadline"] - time.time())
+            if remaining <= 0:
+                await _expire(user_id)
+                return
+            mm_ss = _mmss(remaining)
+            if mm_ss != last_shown:
+                try:
+                    result = await raw_api.edit_message(order["chat_id"], order["msg_id"], _order_text(order, remaining), [[{"text": "Cancel", "callback_data": "pay:cancel"}]])
+                    print(f"[countdown] tick {mm_ss} for user {user_id}: {result}")
+                    last_shown = mm_ss
+                except Exception as e:
+                    print(f"[countdown] edit EXCEPTION for user {user_id}: {e}")
+            await asyncio.sleep(min(COUNTDOWN_TICK, max(1, remaining)))
+        except asyncio.CancelledError:
+            return
+        except Exception as e:
+            print(f"[countdown] loop error for user {user_id}: {e}")
+            await asyncio.sleep(COUNTDOWN_TICK)  # don't die, just keep trying
+
+async def _expire(user_id):
+    order = ORDERS.get(user_id)
+    if not order:
+        return
+    _cancel(SCAN_TASKS, user_id)
+    try:
+        await raw_api.delete_message(order["chat_id"], order["msg_id"])
+    except Exception:
+        pass
+    try:
+        await raw_api.send_message(order["chat_id"], "This order has expired. Please tap Buy Ad Bot again to start a new order.", [])
+    except Exception:
+        pass
+    ORDERS.pop(user_id, None)
+    COUNTDOWN_TASKS.pop(user_id, None)
+
+def _validate(order, res):
+    if not res or not res.get("ok"):
+        return False
+    if not res.get("found"):
+        return False
+    if not res.get("status_ok"):
+        return False
+    if not pe.addr_match(res.get("to_address"), order["address"]):
+        return False
+    if not pe.amount_ok(res.get("amount"), order["crypto_amount"]):
+        return False
+    if not pe.time_ok(order.get("started_at"), res):
+        return False
+    return True
+
+async def _auto_scan(user_id, order_token):
+    # Loop until the order's own deadline (not a fixed tick count) so auto-detection
+    # keeps working for the full payment window regardless of crypto — previously this
+    # was hardcoded to 180 ticks (15 min), which would silently stop auto-scanning a
+    # BTC order 45 minutes before its (longer) countdown actually expired.
+    while True:
+        try:
+            await asyncio.sleep(SCAN_TICK)
+            order = ORDERS.get(user_id)
+            if not order or order.get("token") != order_token or order.get("state") != "await_payment":
+                return
+            if time.time() >= order["deadline"]:
+                return
+            crypto = pe.get_crypto(order["cid"])
+            if not crypto:
+                continue
+            candidates = await pe.scan_address(crypto)
+            for cand in candidates:
+                h = cand.get("hash")
+                if not h or pe.hash_used(h):
+                    continue
+                res = await pe.verify_tx(crypto, h)
+                order = ORDERS.get(user_id)
+                if not order or order.get("token") != order_token or order.get("state") != "await_payment":
+                    return
+                if _validate(order, res):
+                    order["hash"] = h
+                    await _complete_order(user_id, order, res)
+                    return
+        except asyncio.CancelledError:
+            return
+        except Exception as e:
+            print(f"[auto_scan] error for user {user_id}: {e}")
+            continue
+
+@router.message(F.text, ~F.text.startswith("/"), F.from_user.id.in_(ORDERS.keys()))
+async def on_hash_text(message: Message):
+    print(f"[DEBUG] on_hash_text caught message from {message.from_user.id}: {message.text[:50]!r}")
+    user_id = message.from_user.id
+    order = ORDERS.get(user_id)
+    if not order or order.get("state") != "await_payment":
+        return
+    txhash = pe.extract_hash(message.text)
+    crypto = pe.get_crypto(order["cid"])
+    if not crypto:
+        return
+    if pe.hash_used(txhash):
+        await message.reply("That transaction hash has already been used.")
+        return
+
+    wait_msg = await message.reply("Verifying the transaction on the blockchain, please wait...")
+    res = await pe.verify_tx(crypto, txhash)
+
+    if not _validate(order, res):
+        reason = "Transaction not found or does not match yet."
+        if res.get("ok") and res.get("found") and not pe.addr_match(res.get("to_address"), order["address"]):
+            reason = "That payment did not go to our address."
+        elif res.get("ok") and res.get("found") and not pe.amount_ok(res.get("amount"), order["crypto_amount"]):
+            reason = f"Amount does not match. Please send exactly {pe.fmt_crypto(order['crypto_amount'], order['decimals'])} {order['crypto_name']}."
+        try:
+            await wait_msg.edit_text(reason)
+        except Exception:
+            pass
+        return
+
+    order["hash"] = txhash
+    try:
+        await wait_msg.delete()
+    except Exception:
+        pass
+    await _complete_order(user_id, order, res)
+
+async def _complete_order(user_id, order, res):
+    pe.mark_hash_used(order["hash"])
+    _cancel(COUNTDOWN_TASKS, user_id)
+    _cancel(SCAN_TASKS, user_id)
+
+    subscription = store.activate_subscription(user_id, order["plan_id"], months=order["months"])
+
+    try:
+        await raw_api.delete_message(order["chat_id"], order["msg_id"])
+    except Exception:
+        pass
+
+    try:
+        import myadbot
+        plan = store.get_plan(order["plan_id"])
+        quota = plan.get("max_ad_accounts", 1) if plan else 1
+        await myadbot.request_accounts_for_customer(user_id, order["chat_id"], quota)
+    except Exception as e:
+        print(f"[payments_flow] auto-assign after purchase failed: {e}")
+
+    import time as _t
+    start_str = _t.strftime("%Y-%m-%d", _t.localtime(subscription["purchase_date"]))
+    expiry_str = _t.strftime("%Y-%m-%d", _t.localtime(subscription["expiry"]))
+    success_text = (
+        f"<b>Payment Received!</b>\n\n"
+        f"Your <b>{order['plan_name']} plan</b> is now active.\n\n"
+        f"<b>Starts</b> : {start_str}\n"
+        f"<b>Expires</b> : {expiry_str}\n\n"
+        f"Please send /start and open My Ad Bot to get set up."
+    )
+    await raw_api.send_message(order["chat_id"], success_text, [])
+
+    admins = store.load_admins()
+    owner_id = admins.get("owner_id")
+    if owner_id:
+        notify_text = (
+            f"New purchase!\n\n"
+            f"User ID: {user_id}\n"
+            f"Username: {order.get('username') or 'N/A'}\n"
+            f"Plan: {order['plan_name']}\n"
+            f"Amount: {pe.fmt_money(order['usd'])}\n"
+            f"Crypto: {order['crypto_name']}\n"
+            f"Hash: {order['hash']}"
+        )
+        try:
+            await raw_api.send_message(owner_id, notify_text, [])
+        except Exception:
+            pass
+
+    ORDERS.pop(user_id, None)
