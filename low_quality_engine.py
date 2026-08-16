@@ -15,6 +15,7 @@ visibility check). A bug or slowdown in here cannot affect normal posting.
 """
 import asyncio
 import logging
+import random
 import time
 
 import database as db
@@ -47,7 +48,9 @@ async def _run_one_marketplace(ad_cache, ad_id, marketplace_id):
     streak = 0
     try:
         while True:
-            await asyncio.sleep(INTERVAL_LADDER[index])
+            # Jitter added every cycle (not just the first) so marketplaces
+            # discovered in the same batch don't fire in sync.
+            await asyncio.sleep(INTERVAL_LADDER[index] + random.uniform(0, 60))
 
             ad = ad_cache.get(ad_id)
             if ad is None:
