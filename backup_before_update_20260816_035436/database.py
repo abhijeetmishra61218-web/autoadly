@@ -29,6 +29,14 @@ CREATE TABLE IF NOT EXISTS forum_topics (
     FOREIGN KEY(marketplace_id) REFERENCES marketplaces(id)
 );
 
+CREATE TABLE IF NOT EXISTS marketplace_visibility (
+    marketplace_id INTEGER PRIMARY KEY,
+    checks INTEGER DEFAULT 0,
+    buried_count INTEGER DEFAULT 0,
+    last_checked REAL,
+    FOREIGN KEY(marketplace_id) REFERENCES marketplaces(id)
+);
+
 CREATE TABLE IF NOT EXISTS marketplace_lists (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
@@ -79,6 +87,91 @@ async def get_list_marketplaces(list_id: int):
             WHERE i.list_id = ?
         """, (list_id,))
         return await cursor.fetchall()
+
+async def get_marketplace_by_id(marketplace_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT * FROM marketplaces WHERE id = ?", (marketplace_id,))
+        return await cursor.fetchone()
+
+async def get_marketplace_list_by_id(list_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT * FROM marketplace_lists WHERE id = ?", (list_id,))
+        return await cursor.fetchone()
+
+async def delete_custom_list(list_id: int):
+    """Deletes a customer's custom marketplace LIST (the collection itself and
+       its membership rows) — but never touches the shared `marketplaces` table,
+       since those chats are also referenced by the global preset lists and
+       possibly other customers' lists."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM marketplace_list_items WHERE list_id = ?", (list_id,))
+        await db.execute("DELETE FROM marketplace_lists WHERE id = ?", (list_id,))
+        await db.commit()
+
+# ---- Automatic marketplace visibility/quality tracking ----
+# After a post, the engine periodically checks back whether the message is
+# still visible in a marketplace (not deleted, not buried under a flood of
+# newer messages). Marketplaces that consistently bury posts get their
+# quality_tier auto-downgraded to 'low', and the posting rotation skips them.
+
+VISIBILITY_MIN_CHECKS = 5       # need at least this many samples before judging
+VISIBILITY_BURIED_THRESHOLD = 0.6   # 60%+ buried => auto-demote
+VISIBILITY_CHECK_COOLDOWN_SECONDS = 6 * 60 * 60  # only re-check a given marketplace this often
+
+async def should_check_visibility(marketplace_id: int) -> bool:
+    """Whether it's worth scheduling a visibility check for this marketplace
+       right now (keeps overhead low — samples over time instead of every post)."""
+    import time as _time
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT last_checked FROM marketplace_visibility WHERE marketplace_id = ?", (marketplace_id,))
+        row = await cursor.fetchone()
+    if not row or not row["last_checked"]:
+        return True
+    return (_time.time() - row["last_checked"]) >= VISIBILITY_CHECK_COOLDOWN_SECONDS
+
+async def record_visibility_check(marketplace_id: int, buried: bool):
+    """Logs one visibility sample and auto-demotes the marketplace's quality_tier
+       to 'low' if it's consistently burying posts."""
+    import time as _time
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute(
+            "INSERT INTO marketplace_visibility (marketplace_id, checks, buried_count, last_checked) VALUES (?, 1, ?, ?) "
+            "ON CONFLICT(marketplace_id) DO UPDATE SET checks = checks + 1, buried_count = buried_count + ?, last_checked = ?",
+            (marketplace_id, 1 if buried else 0, _time.time(), 1 if buried else 0, _time.time())
+        )
+        await db.commit()
+        cursor = await db.execute("SELECT checks, buried_count FROM marketplace_visibility WHERE marketplace_id = ?", (marketplace_id,))
+        row = await cursor.fetchone()
+        if row and row["checks"] >= VISIBILITY_MIN_CHECKS:
+            ratio = row["buried_count"] / row["checks"]
+            if ratio >= VISIBILITY_BURIED_THRESHOLD:
+                await db.execute("UPDATE marketplaces SET quality_tier = 'low' WHERE id = ?", (marketplace_id,))
+                await db.commit()
+                return True  # newly (or still) demoted
+    return False
+
+async def get_low_quality_marketplaces():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("""
+            SELECT m.id, m.chat_username, m.chat_id, v.checks, v.buried_count
+            FROM marketplaces m
+            JOIN marketplace_visibility v ON v.marketplace_id = m.id
+            WHERE m.quality_tier = 'low'
+            ORDER BY v.buried_count DESC
+        """)
+        return await cursor.fetchall()
+
+async def reset_marketplace_quality(marketplace_id: int):
+    """Gives a demoted marketplace a fresh chance — clears its stats and restores it to 'standard'."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE marketplaces SET quality_tier = 'standard' WHERE id = ?", (marketplace_id,))
+        await db.execute("DELETE FROM marketplace_visibility WHERE marketplace_id = ?", (marketplace_id,))
+        await db.commit()
 
 async def get_forum_topic(marketplace_id: int, category: str):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -250,6 +343,18 @@ async def mark_ad_account_status(account_id: int, status: str):
             import myadbot
 
             kind, uid, payload = _store.get_oldest_pending_fulfillment()
+            # Safety net: skip (and drop) any queue entry whose subscription
+            # is no longer active. Queue entries are supposed to be cleared
+            # the moment a plan expires, but this guarantees a freed account
+            # can never be handed to an expired customer even if some other
+            # code path ever leaves a stale entry behind.
+            while kind is not None and not myadbot.has_active_subscription(uid):
+                if kind == "replacement":
+                    _store.remove_pending_replacement(uid, payload["index"])
+                else:
+                    _store.remove_pending_account_request(uid)
+                kind, uid, payload = _store.get_oldest_pending_fulfillment()
+
             if kind == "replacement":
                 await myadbot.fulfill_replacement(uid, payload["index"], account_id, payload["ad_config"])
                 _store.remove_pending_replacement(uid, payload["index"])
@@ -373,6 +478,8 @@ async def get_recent_logs_for_customer(user_id, minutes: int = 15):
         return await cursor.fetchall()
 
 async def add_ad_account(phone: str, session_string: str, status: str = "free"):
+    import content_store as store
+    phone = store.normalize_phone(phone)
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             "INSERT INTO ad_accounts (phone, session_string, status) VALUES (?, ?, ?)",
@@ -423,10 +530,22 @@ async def delete_ad_account(account_id: int):
         await db.commit()
 
 async def get_ad_account_by_phone(phone: str):
+    import content_store as store
+    phone = store.normalize_phone(phone)
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM ad_accounts WHERE phone = ?", (phone,))
-        return await cursor.fetchone()
+        row = await cursor.fetchone()
+        if row is not None:
+            return row
+        # Fall back to a scan-and-compare for accounts stored before this fix
+        # (with stray spaces baked into the phone column), so lookups still
+        # match instantly without needing a DB migration.
+        cursor = await db.execute("SELECT * FROM ad_accounts")
+        for candidate in await cursor.fetchall():
+            if store.normalize_phone(candidate["phone"]) == phone:
+                return candidate
+        return None
 
 async def refresh_ad_account_session(account_id: int, session_string: str, status: str = "free"):
     async with aiosqlite.connect(DB_PATH) as db:

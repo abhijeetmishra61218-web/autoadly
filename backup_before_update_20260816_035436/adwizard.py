@@ -4,16 +4,18 @@ AutoAdly - Set Advertisement wizard
 
 import re
 from aiogram import Router, F
+from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
 import raw_api
 import content_store as store
 import database as db
 import engine
+from flow_state import FlowBucket, cancel_user
 
 router = Router()
 
-WIZARD_PENDING = {}
+WIZARD_PENDING = FlowBucket("adwizard")
 
 CATEGORIES = ["Telegram", "Discord", "Instagram", "Facebook", "WhatsApp", "TikTok", "X (Twitter)", "YouTube", "Exchange", "Others"]
 
@@ -51,6 +53,51 @@ async def cb_set_ad_start(callback: CallbackQuery):
         [[{"text": "Cancel", "callback_data": "myadbot:open"}]],
     )
     await callback.answer()
+
+
+@router.message(Command("set"))
+async def cmd_set(message: Message):
+    user_id = message.from_user.id
+
+    # Starting /set must invalidate every previous unfinished flow.
+    cancel_user(user_id)
+
+    # Reuse the existing premium-user restriction.
+    try:
+        import myadbot
+
+        if not myadbot.has_active_subscription(user_id):
+            await message.reply(
+                "You don't have an active subscription yet. "
+                "Tap Buy Ad Bot to get started."
+            )
+            return
+    except Exception as e:
+        print(f"[cmd_set] premium check failed for user={user_id}: {e}")
+        await message.reply(
+            "I couldn't verify your subscription right now. Please try again."
+        )
+        return
+
+    adbots = store.get_customer_adbots(user_id)
+
+    if not adbots:
+        await message.reply(
+            "You don't have an Ad Bot Account yet."
+        )
+        return
+
+    # Start the same existing wizard state used by the normal flow.
+    WIZARD_PENDING[user_id] = {
+        "step": "await_link",
+    }
+
+    await raw_api.send_message(
+        message.chat.id,
+        "Send the advertisement message link.",
+        [[{"text": "Cancel", "callback_data": "myadbot:open"}]],
+    )
+
 
 @router.message(F.text, ~F.text.startswith("/"), F.from_user.id.in_(WIZARD_PENDING.keys()))
 async def on_wizard_text(message: Message):
@@ -100,16 +147,30 @@ async def on_wizard_text(message: Message):
         ad_account_id = pending["ad_account_id"]
         list_id = await db.get_or_create_list(f"pending_custom_{user_id}", category="All", owner_customer_id=user_id)
         try:
-            await join_engine.run_join_batch_single_account(ad_account_id, [folder_link], list_id)
+            joined_count, failed = await join_engine.run_join_batch_single_account(ad_account_id, [folder_link], list_id)
         except AttributeError:
             await wait.edit_text("Custom marketplace joining isn't fully wired up yet — contact support.")
             return
+
+        if joined_count == 0:
+            await wait.edit_text(
+                "Your Ad Bot Account couldn't join any groups/forums from that link.\n\n"
+                "Double check the folder link is correct and still valid, then send it again, "
+                "or send a different link."
+            )
+            return
+
         pending.update({"step": "await_custom_name", "custom_list_id": list_id})
         WIZARD_PENDING[user_id] = pending
+        summary = f"Joined {joined_count} group(s)/forum(s)!"
+        if failed:
+            summary += f"\n\n⚠️ Could not join {len(failed)} of them:\n" + "\n".join(f"- {f}" for f in failed)
+        summary += "\n\nNow enter a name for this marketplace collection.\n\nExample: My Crypto Groups"
         try:
-            await wait.edit_text("Joined! Now enter a name for this marketplace collection.\n\nExample: My Crypto Groups")
+            await wait.edit_text(summary)
         except Exception:
-            await message.reply("Joined! Now enter a name for this marketplace collection.\n\nExample: My Crypto Groups")
+            await message.reply(summary)
+
 
     elif step == "await_custom_name":
         name = message.text.strip()
@@ -260,27 +321,12 @@ async def cb_pick_list(callback: CallbackQuery):
         return
 
     list_id = int(choice)
-    try:
-        await _activate_ad(callback.message.chat.id, callback.message.message_id, user_id, pending, list_id)
-    finally:
-        await callback.answer()
+    await _activate_ad(callback.message.chat.id, callback.message.message_id, user_id, pending, list_id)
+    await callback.answer()
 
 async def _activate_ad(chat_id, msg_id, user_id, pending, list_id):
     ad_account_id = pending["ad_account_id"]
-    try:
-        client = await engine.get_client(ad_account_id)
-    except ValueError:
-        text = (
-            "Your Ad Bot Account is no longer available (it may have just been replaced or removed).\n\n"
-            "Please start over from the dashboard."
-        )
-        rows = [[{"text": "Back to Dashboard", "callback_data": "myadbot:open"}]]
-        if msg_id:
-            await raw_api.render(chat_id, msg_id, text, rows)
-        else:
-            await raw_api.send_message(chat_id, text, rows)
-        WIZARD_PENDING.pop(user_id, None)
-        return
+    client = await engine.get_client(ad_account_id)
     try:
         source_chat_id = await _resolve_source_chat(client, pending.get("username"), pending.get("internal_id"))
     except Exception as e:
@@ -323,3 +369,82 @@ async def _activate_ad(chat_id, msg_id, user_id, pending, list_id):
         await raw_api.render(chat_id, msg_id, text, rows)
     else:
         await raw_api.send_message(chat_id, text, rows)
+
+@router.message(Command("mylists"))
+async def cmd_my_custom_lists(message: Message):
+    """Customer-facing: shows every custom marketplace collection this
+       customer has created, with an option to delete each one."""
+    user_id = message.from_user.id
+    custom_lists = await db.get_customer_custom_lists(user_id)
+    custom_lists = [cl for cl in custom_lists if not cl["name"].startswith("pending_custom_")]
+    if not custom_lists:
+        await message.reply("You haven't created any custom marketplace collections yet.")
+        return
+    rows = []
+    for cl in custom_lists:
+        rows.append([{"text": f"🗑 {cl['name']}", "callback_data": f"mylists:del:{cl['id']}"}])
+    await raw_api.send_message(
+        message.chat.id,
+        "<b>Your Custom Marketplace Collections</b>\n\nTap one to delete it — this removes it from your "
+        "advertisement lists and makes your Ad Bot Account leave those groups/forums.",
+        rows,
+    )
+
+@router.callback_query(F.data.startswith("mylists:del:"))
+async def cb_confirm_delete_list(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    list_id = int(callback.data.split(":", 2)[2])
+    marketplace_list = await db.get_marketplace_list_by_id(list_id)
+    if not marketplace_list or marketplace_list["owner_customer_id"] != user_id:
+        await callback.answer("Not found.", show_alert=True)
+        return
+    rows = [
+        [{"text": "Yes, delete it", "callback_data": f"mylists:confirmdel:{list_id}"}],
+        [{"text": "Cancel", "callback_data": "mylists:cancel"}],
+    ]
+    await raw_api.render(
+        callback.message.chat.id, callback.message.message_id,
+        f"Delete <b>{marketplace_list['name']}</b>? Your Ad Bot Account(s) will leave every group/forum in it, "
+        f"and it will stop being used for any advertisement. This can't be undone.",
+        rows,
+    )
+    await callback.answer()
+
+@router.callback_query(F.data == "mylists:cancel")
+async def cb_cancel_delete_list(callback: CallbackQuery):
+    await raw_api.render(callback.message.chat.id, callback.message.message_id, "Cancelled — nothing was deleted.", [])
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("mylists:confirmdel:"))
+async def cb_delete_list(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    list_id = int(callback.data.split(":", 2)[2])
+    marketplace_list = await db.get_marketplace_list_by_id(list_id)
+    if not marketplace_list or marketplace_list["owner_customer_id"] != user_id:
+        await callback.answer("Not found.", show_alert=True)
+        return
+
+    await callback.answer()
+    wait = await callback.message.edit_text(f"Deleting {marketplace_list['name']} — leaving those groups/forums, please wait...")
+
+    marketplaces = await db.get_list_marketplaces(list_id)
+    adbots = store.get_customer_adbots(user_id)
+    left_count = 0
+    for mp in marketplaces:
+        for bot in adbots:
+            if bot.get("ad_account_id") is None:
+                continue
+            try:
+                client = await engine.get_client(bot["ad_account_id"])
+                entity = await client.get_entity(mp["chat_id"])
+                await client.delete_dialog(entity)
+                left_count += 1
+            except Exception:
+                pass  # not a member on this account, or already left — fine either way
+
+    await db.delete_custom_list(list_id)
+
+    try:
+        await wait.edit_text(f"Deleted <b>{marketplace_list['name']}</b>. Left {left_count} group/forum membership(s).", parse_mode="HTML")
+    except Exception:
+        await raw_api.send_message(callback.message.chat.id, f"Deleted {marketplace_list['name']}. Left {left_count} group/forum membership(s).", [])

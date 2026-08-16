@@ -1,6 +1,22 @@
 # content_store.py
+
+
 import json
 import os
+import re
+
+def normalize_phone(raw: str) -> str:
+    """Strips spaces/dashes/parens/etc out of a phone number, keeping a single
+       leading '+' if present. Used both when a phone number is first entered
+       (so it's stored clean) and whenever one is displayed (so any number
+       already in the system with stray spaces shows clean immediately too,
+       with no migration needed)."""
+    if not raw:
+        return raw
+    raw = raw.strip()
+    has_plus = raw.startswith("+")
+    digits = re.sub(r"\D", "", raw)
+    return ("+" + digits) if has_plus else digits
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PLANS_FILE = os.path.join(BASE_DIR, "plans.json")
@@ -178,7 +194,7 @@ def get_subscription(user_id):
     subs = load_subscriptions()
     return subs.get(str(user_id))
 
-def activate_subscription(user_id, plan_id, months=1):
+def activate_subscription(user_id, plan_id, months=1, days=None):
     import time as _time
     subs = load_subscriptions()
     key = str(user_id)
@@ -187,12 +203,17 @@ def activate_subscription(user_id, plan_id, months=1):
     start = now
     if existing and existing.get("expiry", 0) > now:
         start = existing["expiry"]  # renewing before expiry extends from current expiry, not from now
-    expiry = start + (months * 30 * 24 * 60 * 60)
+    if days is not None:
+        duration_seconds = days * 24 * 60 * 60
+    else:
+        duration_seconds = months * 30 * 24 * 60 * 60
+    expiry = start + duration_seconds
     subs[key] = {
         "plan_id": plan_id,
         "purchase_date": now,
         "expiry": expiry,
-        "months": months,
+        "months": months if days is None else None,
+        "days": days,
         "notified_soon": False,
         "reclaimed": False,
     }
@@ -270,6 +291,43 @@ def set_slot_photo(user_id, index, photo_file_id):
     if key in data and 0 <= index < len(data[key]):
         data[key][index]["photo_file_id"] = photo_file_id
         save_customer_adbots(data)
+def set_slot_cached_photo(user_id, index, photo_bytes):
+    """Persist a raw Telegram profile photo for this slot."""
+    cache_dir = os.path.join(BASE_DIR, "profile_photo_cache")
+    os.makedirs(cache_dir, exist_ok=True)
+
+    path = os.path.join(
+        cache_dir,
+        f"{int(user_id)}_{int(index)}.jpg",
+    )
+
+    if photo_bytes:
+        with open(path, "wb") as f:
+            f.write(photo_bytes)
+    else:
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+
+
+def get_slot_cached_photo(user_id, index):
+    """Return the cached raw profile photo, if available."""
+    path = os.path.join(
+        BASE_DIR,
+        "profile_photo_cache",
+        f"{int(user_id)}_{int(index)}.jpg",
+    )
+
+    if not os.path.exists(path):
+        return None
+
+    try:
+        with open(path, "rb") as f:
+            return f.read()
+    except OSError as e:
+        print(f"[content_store] cached photo read failed: {e}")
+        return None
 
 def slot_display_name(slot, index):
     base = slot.get("name") or "Adbot"
@@ -402,6 +460,38 @@ def remove_pending_account_request(user_id):
     data = load_pending_account_requests()
     data.pop(str(user_id), None)
     save_pending_account_requests(data)
+
+def is_priority_request(entry):
+    """created_at == 0 is how /priority and the direct-assign fallback mark
+       someone as jumped to the very front of the queue (see
+       queue_pending_account_request's docstring)."""
+    return entry is not None and entry.get("created_at") == 0
+
+def list_pending_account_requests_sorted():
+    """Returns the account-request queue as a list of
+       (user_id, created_at, is_priority), priority entries first (in the
+       order they were prioritized), then everyone else oldest-first."""
+    data = load_pending_account_requests()
+    entries = [(int(uid), e["created_at"], is_priority_request(e)) for uid, e in data.items()]
+    entries.sort(key=lambda e: (not e[2], e[1]))
+    return entries
+
+def remove_priority(user_id):
+    """Un-prioritizes a customer previously jumped to the front via /priority
+       (created_at forced to 0), restoring them to their fair queue position —
+       their subscription's purchase_date if known, otherwise now. Returns
+       False if they weren't in the queue or weren't currently prioritized."""
+    import time as _time
+    data = load_pending_account_requests()
+    key = str(user_id)
+    entry = data.get(key)
+    if not is_priority_request(entry):
+        return False
+    sub = get_subscription(user_id)
+    restored_at = sub.get("purchase_date") if sub else None
+    data[key] = {"created_at": restored_at if restored_at is not None else _time.time()}
+    save_pending_account_requests(data)
+    return True
 
 PENDING_REPLACEMENTS_FILE = os.path.join(BASE_DIR, "pending_replacements.json")
 

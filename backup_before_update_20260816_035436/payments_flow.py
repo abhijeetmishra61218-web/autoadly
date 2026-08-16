@@ -15,9 +15,12 @@ import payments_engine as pe
 router = Router()
 
 PAY_WINDOW_SECONDS = 15 * 60
+BTC_PAY_WINDOW_SECONDS = 60 * 60  # BTC gets a longer window — confirmations are slower
 COUNTDOWN_TICK = 1
 SCAN_TICK = 5
-SCAN_MAX_TICKS = 180  # 5s x 180 = 15 min, matches the payment window
+
+def _pay_window_seconds(cid):
+    return BTC_PAY_WINDOW_SECONDS if cid == "btc" else PAY_WINDOW_SECONDS
 
 ORDERS = {}
 COUNTDOWN_TASKS = {}
@@ -142,7 +145,7 @@ async def cb_pick_crypto(callback: CallbackQuery):
         "state": "await_payment", "cid": cid, "crypto_name": crypto["name"],
         "crypto_amount": float(crypto_amount), "address": crypto["address"],
         "decimals": int(crypto.get("decimals", 8)), "is_stable": bool(crypto.get("is_usd_stable")),
-        "min_conf": int(crypto.get("min_conf", 1)), "deadline": time.time() + PAY_WINDOW_SECONDS,
+        "min_conf": int(crypto.get("min_conf", 1)), "deadline": time.time() + _pay_window_seconds(cid),
         "started_at": time.time(), "hash": None,
     })
     ORDERS[user_id] = order
@@ -228,13 +231,17 @@ def _validate(order, res):
     return True
 
 async def _auto_scan(user_id, order_token):
-    ticks = 0
-    while ticks < SCAN_MAX_TICKS:
+    # Loop until the order's own deadline (not a fixed tick count) so auto-detection
+    # keeps working for the full payment window regardless of crypto — previously this
+    # was hardcoded to 180 ticks (15 min), which would silently stop auto-scanning a
+    # BTC order 45 minutes before its (longer) countdown actually expired.
+    while True:
         try:
             await asyncio.sleep(SCAN_TICK)
-            ticks += 1
             order = ORDERS.get(user_id)
             if not order or order.get("token") != order_token or order.get("state") != "await_payment":
+                return
+            if time.time() >= order["deadline"]:
                 return
             crypto = pe.get_crypto(order["cid"])
             if not crypto:

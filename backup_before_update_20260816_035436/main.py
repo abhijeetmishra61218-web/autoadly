@@ -8,6 +8,7 @@ import myadbot
 import adwizard
 import admin_commands
 import ban_middleware
+import join_middleware
 import account_setup
 import backup_system
 import restriction_monitor
@@ -20,6 +21,8 @@ async def main():
     dp = Dispatcher()
     dp.message.outer_middleware(ban_middleware.BanMiddleware())
     dp.callback_query.outer_middleware(ban_middleware.BanMiddleware())
+    dp.message.outer_middleware(join_middleware.JoinCheckMiddleware())
+    dp.callback_query.outer_middleware(join_middleware.JoinCheckMiddleware())
     dp.include_router(router)
     dp.include_router(payments_admin.router)
     dp.include_router(payments_flow.router)

@@ -24,8 +24,72 @@ ADD_PENDING = {}
 async def cmd_addadbot(message: Message):
     if not store.is_admin(message.from_user.id):
         return
+    parts = message.text.split()
+
+    # /addadbot @username — assign a free Ad Bot Account directly to that
+    # customer, bypassing the normal FIFO queue. /addadbot with no argument
+    # keeps its original meaning: log in a brand new phone number into the pool.
+    if len(parts) == 2 and parts[1].startswith("@"):
+        await _addadbot_to_customer(message, parts[1].lstrip("@"))
+        return
+    if len(parts) > 1:
+        await message.reply(
+            "Usage:\n"
+            "/addadbot — add a brand new Ad Bot Account (phone/code login)\n"
+            "/addadbot @username — assign a free Ad Bot Account directly to that customer"
+        )
+        return
+
     ADD_PENDING[message.from_user.id] = {"step": "await_phone"}
     await message.reply("Send the phone number (with country code) for the new Ad Bot Account.\n\nExample: +15551234567")
+
+
+async def _addadbot_to_customer(message: Message, username: str):
+    """Owner-only: assigns a free Ad Bot Account directly to one customer,
+       skipping the FIFO queue everyone else is waiting in. Same as any other
+       assignment: it fills a slot within their plan quota (never beyond it),
+       and behaves identically to every other slot afterwards — /expire,
+       auto-expiry, /change, etc. all treat it the same as any other account."""
+    target_uid = store.get_uid_by_username(username)
+    if not target_uid:
+        await message.reply(f"@{username} hasn't started the bot yet.")
+        return
+
+    sub = store.get_subscription(target_uid)
+    if not sub:
+        await message.reply(f"@{username} has no active subscription. Use /activate first, then /addadbot @{username}.")
+        return
+
+    plan = store.get_plan(sub.get("plan_id"))
+    quota = plan.get("max_ad_accounts", 1) if plan else 1
+    store.ensure_customer_slots(target_uid, quota)
+    current_filled = sum(1 for s in store.get_customer_adbots(target_uid) if s.get("ad_account_id"))
+
+    if current_filled >= quota:
+        await message.reply(f"@{username} already has their full quota ({current_filled}/{quota}) — nothing to add.")
+        return
+
+    account = await db.get_free_ad_account()
+    if not account:
+        # No free stock right now — put them at the very front of the queue
+        # (created_at=0) so the next account added via plain /addadbot, or
+        # the next one freed anywhere in the system, goes straight to them
+        # ahead of everyone else waiting.
+        store.queue_pending_account_request(target_uid, created_at=0)
+        await message.reply(
+            f"No free Ad Bot Accounts right now. @{username} has been put at the very front of the queue — "
+            f"they'll get the next account added or freed, ahead of everyone else waiting."
+        )
+        return
+
+    import myadbot
+    await myadbot._assign_account(target_uid, None, target_uid, account["id"], send_new=True)
+
+    remaining_empty = sum(1 for s in store.get_customer_adbots(target_uid) if s.get("ad_account_id") is None)
+    if remaining_empty == 0:
+        store.remove_pending_account_request(target_uid)
+
+    await message.reply(f"Ad Bot Account ID {account['id']} assigned directly to @{username} ({current_filled + 1}/{quota}). Customer notified.")
 
 @router.message(Command("canceladd"))
 async def cmd_canceladd(message: Message):
@@ -47,7 +111,7 @@ async def on_addadbot_text(message: Message):
     text = message.text.strip()
 
     if step == "await_phone":
-        phone = text
+        phone = store.normalize_phone(text)
         client = TelegramClient(StringSession(), API_ID, API_HASH)
         await client.connect()
         try:
@@ -180,7 +244,7 @@ async def cmd_accounts(message: Message):
     lines = ["<b>All Ad Bot Accounts</b>", ""]
     for a in accounts:
         pw_flag = " 🔑" if a["two_step_password"] else ""
-        lines.append(f"ID {a['id']} — {a['phone']} — {a['status']}{pw_flag}")
+        lines.append(f"ID {a['id']} — {store.normalize_phone(a['phone'])} — {a['status']}{pw_flag}")
     lines.append("")
     lines.append("Use /login (number) to retrieve a fresh login code and saved 2FA password for any account.")
     await message.reply("\n".join(lines), parse_mode="HTML")
@@ -193,39 +257,31 @@ async def cmd_login(message: Message):
     if len(parts) != 2:
         await message.reply("Usage: /login +15551234567")
         return
-    phone = parts[1].strip()
+    phone = store.normalize_phone(parts[1])
     account = await db.get_ad_account_by_phone(phone)
     if not account:
         await message.reply(f"No account found with phone {phone}.")
         return
 
-    wait_msg = await message.reply("Requesting a fresh login code and checking for it, please wait...")
+    wait_msg = await message.reply(
+        "Ready to catch the login code — go request one on your device/app now "
+        "(e.g. tap 'Log in with phone number'). Checking for up to 60 seconds..."
+    )
 
-    from telethon import TelegramClient
-    from telethon.sessions import StringSession
     import engine as _engine
     import asyncio as _asyncio
-
     import time as _time
     request_time = _time.time()
 
-    fresh_client = TelegramClient(StringSession(), API_ID, API_HASH)
-    await fresh_client.connect()
-    try:
-        await fresh_client.send_code_request(phone)
-    except Exception as e:
-        await fresh_client.disconnect()
-        await wait_msg.edit_text(f"Could not request a login code: {e}")
-        return
-    await fresh_client.disconnect()
-
-    # Poll for up to ~20s, only accepting a code message that arrived AFTER this
-    # specific request — this avoids ever handing back a stale/already-invalidated
-    # code from an earlier attempt sitting in the same chat.
-    code_text = "Could not find a fresh code message within 20 seconds — please try /login again."
+    # Deliberately does NOT call send_code_request itself — that would trigger
+    # a brand-new competing login code and invalidate whatever code the
+    # admin's own device is trying to log in with. Instead this just watches
+    # the account's own existing session (already logged in) for a fresh
+    # message from Telegram's official 777000 service account.
+    code_text = "No new code arrived within 60 seconds — request one on your device, then try /login again."
     try:
         existing_client = await _engine.get_client(account["id"])
-        for _attempt in range(10):
+        for _attempt in range(30):
             await _asyncio.sleep(2)
             messages = await existing_client.get_messages(777000, limit=5)
             found = None

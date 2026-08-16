@@ -23,8 +23,6 @@ async def get_client(ad_account_id: int) -> TelegramClient:
     if ad_account_id in _clients:
         return _clients[ad_account_id]
     account = await db.get_ad_account_session(ad_account_id)
-    if account is None:
-        raise ValueError(f"Ad Bot Account {ad_account_id} no longer exists (it may have been removed or replaced).")
     client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH)
     await client.connect()
     # Populate this connection's entity cache with every chat the account is a member of.
@@ -74,9 +72,49 @@ def _build_message_link(marketplace, msg_id):
         chat_id_str = chat_id_str[1:]
     return f"https://t.me/c/{chat_id_str}/{msg_id}" if msg_id else f"https://t.me/c/{chat_id_str}"
 
+VISIBILITY_CHECK_DELAY_SECONDS = 90
+VISIBILITY_RECENT_WINDOW = 15  # message must still be within the last N messages to count as "visible"
+
+async def is_still_visible(client, target, msg_id):
+    """True if a posted message still exists and hasn't been buried under a
+       flood of newer messages (same visibility rule used for auto-demotion)."""
+    if msg_id is None:
+        return False
+    msg = await client.get_messages(target, ids=msg_id)
+    if msg is None:
+        return False
+    async for m in client.iter_messages(target, limit=VISIBILITY_RECENT_WINDOW):
+        if m.id == msg_id:
+            return True
+    return False
+
+async def _check_visibility_later(client, marketplace, msg_id, target):
+    """Fire-and-forget: waits a bit, then checks whether a just-posted message
+       is still visible (exists AND not buried under a flood of newer messages).
+       Feeds the result into the marketplace's automatic quality tracking."""
+    if msg_id is None:
+        return
+    try:
+        await asyncio.sleep(VISIBILITY_CHECK_DELAY_SECONDS)
+        buried = not await is_still_visible(client, target, msg_id)
+        newly_demoted = await db.record_visibility_check(marketplace["id"], buried)
+        if newly_demoted:
+            logger.info(f"Marketplace {marketplace['id']} ({marketplace.get('chat_username')}) auto-demoted to low quality (posts consistently buried).")
+    except Exception as e:
+        logger.info(f"Visibility check failed for marketplace {marketplace['id']}: {e}")
+
 async def post_to_marketplace(client: TelegramClient, ad, marketplace):
     """Attempts a single post. Returns the real destination message link on success,
        or None on any failure (silently skipped)."""
+    link, _msg_id, _target = await _post_to_marketplace_core(client, ad, marketplace)
+    return link
+
+async def _post_to_marketplace_core(client: TelegramClient, ad, marketplace):
+    """Same as post_to_marketplace, but also returns (msg_id, target) so callers
+       that need to run their own visibility check (e.g. low_quality_engine.py)
+       can do so without duplicating the posting logic. post_to_marketplace()
+       above is just a thin wrapper kept 100% behavior-identical for the
+       existing caller in run_advertisement_loop."""
     try:
         target = marketplace["chat_id"]
         source_username = ad["source_username"] if "source_username" in ad.keys() else None
@@ -98,7 +136,9 @@ async def post_to_marketplace(client: TelegramClient, ad, marketplace):
             except Exception:
                 pass
             new_msg_id = _extract_new_message_id(result)
-            return _build_message_link(marketplace, new_msg_id)
+            if new_msg_id and await db.should_check_visibility(marketplace["id"]):
+                asyncio.create_task(_check_visibility_later(client, marketplace, new_msg_id, target))
+            return _build_message_link(marketplace, new_msg_id), new_msg_id, target
 
         candidates = await db.get_ranked_topics(marketplace["id"], ad["category"])
         if not candidates:
@@ -116,34 +156,41 @@ async def post_to_marketplace(client: TelegramClient, ad, marketplace):
                 except Exception:
                     pass
                 new_msg_id = _extract_new_message_id(result)
-                return _build_message_link(marketplace, new_msg_id)
+                if new_msg_id and await db.should_check_visibility(marketplace["id"]):
+                    asyncio.create_task(_check_visibility_later(client, marketplace, new_msg_id, target))
+                return _build_message_link(marketplace, new_msg_id), new_msg_id, target
             except (FloodWaitError, ChatWriteForbiddenError, UserBannedInChannelError):
                 raise
             except Exception:
                 continue  # this topic rejected the post, try the next candidate
 
-        return None
+        return None, None, None
     except FloodWaitError:
-        return None
+        return None, None, None
     except (ChatWriteForbiddenError, UserBannedInChannelError):
         try:
             import restriction_monitor
             await restriction_monitor.record_marketplace_ban(ad["ad_account_id"], marketplace["id"])
         except Exception as e:
             print(f"[engine] restriction_monitor recording failed: {e}")
-        return None
+        return None, None, None
     except Exception as e:
         logger.info(f"Skipped marketplace {marketplace['id']}: {e}")
-        return None
+        return None, None, None
 
 async def run_advertisement_loop(ad):
     """One continuous cycle for a single advertisement. Runs until status changes to 'stopped'."""
     ad_id = ad["id"]
     client = await get_client(ad["ad_account_id"])
-    marketplaces = await db.get_list_marketplaces(ad["marketplace_list_id"])
-    if not marketplaces:
+    all_marketplaces = await db.get_list_marketplaces(ad["marketplace_list_id"])
+    if not all_marketplaces:
         logger.warning(f"Ad {ad_id} has an empty marketplace list, stopping.")
         return
+
+    # Skip marketplaces auto-demoted for consistently burying posts — but never
+    # end up with zero marketplaces to post to, so fall back to the full list
+    # if filtering would empty it out entirely.
+    marketplaces = [m for m in all_marketplaces if m["quality_tier"] != "low"] or all_marketplaces
 
     index = ad["current_index"] % len(marketplaces)
 
@@ -152,6 +199,12 @@ async def run_advertisement_loop(ad):
         current = await db.get_active_advertisements()
         if not any(a["id"] == ad_id for a in current):
             break
+
+        # Re-fetch periodically so newly-demoted marketplaces drop out of
+        # rotation without needing to wait for this ad to restart.
+        all_marketplaces = await db.get_list_marketplaces(ad["marketplace_list_id"])
+        marketplaces = [m for m in all_marketplaces if m["quality_tier"] != "low"] or all_marketplaces
+        index = index % len(marketplaces)
 
         marketplace = marketplaces[index]
         posted_link = await post_to_marketplace(client, ad, marketplace)
@@ -217,6 +270,13 @@ async def start_engine():
 
     tasks.append(asyncio.create_task(cleanup_loop()))
     tasks.append(asyncio.create_task(watch_for_new_ads()))
+
+    # Separate, independent adaptive-schedule engine for marketplaces already
+    # auto-demoted to 'low' quality (skipped entirely by the loop above).
+    # Runs on its own task/schedule and cannot affect the main rotation.
+    import low_quality_engine
+    tasks.append(asyncio.create_task(low_quality_engine.watch_low_quality_marketplaces()))
+
     await asyncio.gather(*tasks)
 
 if __name__ == "__main__":

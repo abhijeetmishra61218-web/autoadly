@@ -192,30 +192,42 @@ async def join_chatlist(client, slug: str):
 
 async def run_join_batch_single_account(ad_account_id: int, identifiers: list, list_id: int):
     """Like run_join_batch, but joins with exactly one ad account and adds results to a specific list_id
-       (used for a single customer's 'Add Custom Marketplaces' feature, not the global marketplace pool)."""
+       (used for a single customer's 'Add Custom Marketplaces' feature, not the global marketplace pool).
+       Returns (joined_count, failed_identifiers) so the caller can tell the customer exactly
+       which links their Ad Bot Account could not join."""
     account = await db.get_ad_account_by_id(ad_account_id)
     if not account:
-        return
+        return 0, list(identifiers)
     client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH)
     await client.connect()
 
+    joined_count = 0
+    failed = []
     for identifier in identifiers:
         kind, value = parse_identifier(identifier)
         if kind == "chatlist":
             chats = await join_chatlist(client, value)
+            if not chats:
+                failed.append(identifier)
             for chat in chats:
                 username = getattr(chat, "username", None) or str(getattr(chat, "id", identifier))
                 marketplace_id = await register_marketplace(client, chat, username)
                 await db.add_marketplace_to_all_lists(marketplace_id, list_id=list_id)
+                joined_count += 1
             await delete_local_chatlist_folder(client, ad_account_id=account["id"])
             continue
         entity = await join_one(client, identifier)
         if entity:
             marketplace_id = await register_marketplace(client, entity, identifier)
             await db.add_marketplace_to_all_lists(marketplace_id, list_id=list_id)
+            joined_count += 1
+        else:
+            failed.append(identifier)
         await asyncio.sleep(JOIN_DELAY)
 
     await client.disconnect()
+    return joined_count, failed
+
 
 async def run_join_batch_for_specific_account(ad_account_id: int, identifiers: list):
     """Joins one specific ad account to marketplaces. Each identifier can be a username,

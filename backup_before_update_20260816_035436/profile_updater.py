@@ -6,6 +6,7 @@ customer manually edits it later via Manage Ad Bot.
 
 import random
 import io
+from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.functions.account import UpdateProfileRequest, UpdateUsernameRequest, CheckUsernameRequest
 from telethon.tl.functions.photos import UploadProfilePhotoRequest
 from telethon.errors import UsernameOccupiedError, UsernameInvalidError
@@ -57,3 +58,62 @@ async def update_photo_from_bytes(client, photo_bytes_io):
     except Exception as e:
         print(f"[profile_updater] photo-from-bytes update failed: {e}")
         return False
+
+async def fetch_profile_from_username(client, username):
+    """
+    Fetch another Telegram user's public profile.
+
+    Returns:
+        {
+            "name": str,
+            "bio": str,
+            "photo_bytes": bytes | None,
+        }
+    """
+    username = (username or "").strip().lstrip("@")
+
+    if not username:
+        return None
+
+    entity = await client.get_entity(username)
+    full = await client(GetFullUserRequest(entity))
+
+    user = getattr(full, "user", None) or entity
+    full_user = getattr(full, "full_user", None)
+
+    name = " ".join(
+        value
+        for value in (
+            getattr(user, "first_name", None),
+            getattr(user, "last_name", None),
+        )
+        if value
+    ).strip()
+
+    if not name:
+        name = "User"
+
+    bio = ""
+    if full_user is not None:
+        bio = getattr(full_user, "about", None) or ""
+
+    photo_bytes = None
+
+    if getattr(user, "photo", None):
+        try:
+            photo_bytes = await client.download_profile_photo(
+                user,
+                file=bytes,
+            )
+        except Exception as e:
+            print(
+                f"[profile_updater] source photo download failed "
+                f"username={username}: {e}"
+            )
+
+    return {
+        "name": name[:64],
+        "bio": bio[:70],
+        "photo_bytes": photo_bytes,
+    }
+
