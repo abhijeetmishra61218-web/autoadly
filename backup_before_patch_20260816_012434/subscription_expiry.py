@@ -84,20 +84,6 @@ async def release_customer_accounts(user_id, plan_name, source="expired"):
     # returning customer's next account in the same slot looks the same.
     store.free_customer_slots(user_id)
 
-    # Drop this customer from BOTH queues. This used to only happen inside the
-    # /expire admin command — natural (automatic) expiry never did it, which
-    # let an expired customer sit as a "ghost" entry in the queue. The moment
-    # any account anywhere in the system was freed, it got auto-assigned
-    # straight to that ghost (see mark_ad_account_status in database.py),
-    # which is why freed accounts kept looking "occupied" and expired
-    # customers kept receiving accounts. Doing this here means BOTH the
-    # manual /expire command and the hourly automatic check get the fix.
-    store.remove_pending_account_request(user_id)
-    replacements = store.load_pending_replacements()
-    if str(user_id) in replacements:
-        replacements.pop(str(user_id), None)
-        store.save_pending_replacements(replacements)
-
     await _notify_owner(
         f"Finished releasing {label}'s accounts: {freed} freed (auto-assigned if anyone was "
         f"waiting), {restricted} held back as restricted."

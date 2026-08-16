@@ -296,13 +296,8 @@ async def cmd_priority(message: Message):
 
     still_needed = needed - assigned
     if still_needed > 0:
-        # created_at=0 forces this customer to the very front of the queue,
-        # ahead of everyone else waiting — queue_pending_account_request()
-        # normally PRESERVES an existing timestamp when re-queuing, which is
-        # why /priority previously said "prioritized" but didn't actually
-        # change anyone's position.
         for _ in range(still_needed):
-            store.queue_pending_account_request(target_uid, created_at=0)
+            store.queue_pending_account_request(target_uid)
         await message.reply(f"Assigned {assigned} account(s) instantly to @{username}. Prioritized in queue for the remaining {still_needed} — they'll be first in line for the next account(s) added.")
     else:
         await message.reply(f"Assigned all {assigned} needed account(s) to @{username} instantly.")
@@ -403,13 +398,16 @@ async def cmd_expire_user(message: Message):
     plan_name = plan["name"] if plan else sub.get("plan_id")
 
     import subscription_expiry
-    # release_customer_accounts() also removes target_uid from the
-    # new-account-request and replacement queues, so it doesn't need
-    # repeating here.
     freed, restricted = await subscription_expiry.release_customer_accounts(target_uid, plan_name, source="ended by admin")
 
     store.mark_subscription_flag(target_uid, "reclaimed", True)
     store.mark_subscription_flag(target_uid, "expiry", time.time())
+    store.remove_pending_account_request(target_uid)
+
+    replacements = store.load_pending_replacements()
+    if str(target_uid) in replacements:
+        replacements.pop(str(target_uid), None)
+        store.save_pending_replacements(replacements)
 
     try:
         await raw_api.send_message(
@@ -648,7 +646,6 @@ OWNER_COMMANDS = [
     ("/addg", "/addg", "Add one or more marketplace groups (send usernames/links after)."),
     ("/add", "/add @m1 @m2 https://t.me/m3 ...", "Add marketplace groups directly, space-separated."),
     ("/addadbot", "/addadbot", "Add a new Ad Bot Account (interactive phone/code login)."),
-    ("/addadbot", "/addadbot @username", "Assign a free Ad Bot Account directly to that customer, skipping the queue."),
     ("/canceladd", "/canceladd", "Cancel an in-progress /addadbot session."),
     ("/accounts", "/accounts", "List every Ad Bot Account in the system with its status."),
     ("/login", "/login +15551234567", "Get a fresh login code + saved 2FA password for an account."),

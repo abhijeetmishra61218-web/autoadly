@@ -24,72 +24,8 @@ ADD_PENDING = {}
 async def cmd_addadbot(message: Message):
     if not store.is_admin(message.from_user.id):
         return
-    parts = message.text.split()
-
-    # /addadbot @username — assign a free Ad Bot Account directly to that
-    # customer, bypassing the normal FIFO queue. /addadbot with no argument
-    # keeps its original meaning: log in a brand new phone number into the pool.
-    if len(parts) == 2 and parts[1].startswith("@"):
-        await _addadbot_to_customer(message, parts[1].lstrip("@"))
-        return
-    if len(parts) > 1:
-        await message.reply(
-            "Usage:\n"
-            "/addadbot — add a brand new Ad Bot Account (phone/code login)\n"
-            "/addadbot @username — assign a free Ad Bot Account directly to that customer"
-        )
-        return
-
     ADD_PENDING[message.from_user.id] = {"step": "await_phone"}
     await message.reply("Send the phone number (with country code) for the new Ad Bot Account.\n\nExample: +15551234567")
-
-
-async def _addadbot_to_customer(message: Message, username: str):
-    """Owner-only: assigns a free Ad Bot Account directly to one customer,
-       skipping the FIFO queue everyone else is waiting in. Same as any other
-       assignment: it fills a slot within their plan quota (never beyond it),
-       and behaves identically to every other slot afterwards — /expire,
-       auto-expiry, /change, etc. all treat it the same as any other account."""
-    target_uid = store.get_uid_by_username(username)
-    if not target_uid:
-        await message.reply(f"@{username} hasn't started the bot yet.")
-        return
-
-    sub = store.get_subscription(target_uid)
-    if not sub:
-        await message.reply(f"@{username} has no active subscription. Use /activate first, then /addadbot @{username}.")
-        return
-
-    plan = store.get_plan(sub.get("plan_id"))
-    quota = plan.get("max_ad_accounts", 1) if plan else 1
-    store.ensure_customer_slots(target_uid, quota)
-    current_filled = sum(1 for s in store.get_customer_adbots(target_uid) if s.get("ad_account_id"))
-
-    if current_filled >= quota:
-        await message.reply(f"@{username} already has their full quota ({current_filled}/{quota}) — nothing to add.")
-        return
-
-    account = await db.get_free_ad_account()
-    if not account:
-        # No free stock right now — put them at the very front of the queue
-        # (created_at=0) so the next account added via plain /addadbot, or
-        # the next one freed anywhere in the system, goes straight to them
-        # ahead of everyone else waiting.
-        store.queue_pending_account_request(target_uid, created_at=0)
-        await message.reply(
-            f"No free Ad Bot Accounts right now. @{username} has been put at the very front of the queue — "
-            f"they'll get the next account added or freed, ahead of everyone else waiting."
-        )
-        return
-
-    import myadbot
-    await myadbot._assign_account(target_uid, None, target_uid, account["id"], send_new=True)
-
-    remaining_empty = sum(1 for s in store.get_customer_adbots(target_uid) if s.get("ad_account_id") is None)
-    if remaining_empty == 0:
-        store.remove_pending_account_request(target_uid)
-
-    await message.reply(f"Ad Bot Account ID {account['id']} assigned directly to @{username} ({current_filled + 1}/{quota}). Customer notified.")
 
 @router.message(Command("canceladd"))
 async def cmd_canceladd(message: Message):

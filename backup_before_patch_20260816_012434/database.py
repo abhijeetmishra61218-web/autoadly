@@ -337,18 +337,6 @@ async def mark_ad_account_status(account_id: int, status: str):
             import myadbot
 
             kind, uid, payload = _store.get_oldest_pending_fulfillment()
-            # Safety net: skip (and drop) any queue entry whose subscription
-            # is no longer active. Queue entries are supposed to be cleared
-            # the moment a plan expires, but this guarantees a freed account
-            # can never be handed to an expired customer even if some other
-            # code path ever leaves a stale entry behind.
-            while kind is not None and not myadbot.has_active_subscription(uid):
-                if kind == "replacement":
-                    _store.remove_pending_replacement(uid, payload["index"])
-                else:
-                    _store.remove_pending_account_request(uid)
-                kind, uid, payload = _store.get_oldest_pending_fulfillment()
-
             if kind == "replacement":
                 await myadbot.fulfill_replacement(uid, payload["index"], account_id, payload["ad_config"])
                 _store.remove_pending_replacement(uid, payload["index"])

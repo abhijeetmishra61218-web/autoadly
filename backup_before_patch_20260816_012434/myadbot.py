@@ -12,10 +12,11 @@ import database as db
 import engine
 import config
 import profile_updater as pu
+from flow_state import FlowBucket, cancel_user
 
 router = Router()
 
-EDIT_PENDING = {}
+EDIT_PENDING = FlowBucket("myad")
 
 def has_active_subscription(user_id):
     sub = store.get_subscription(user_id)
@@ -111,18 +112,8 @@ async def _assign_account(chat_id, msg_id, user_id, account_id, send_new=False):
 
     idx = store.get_next_empty_slot_index(user_id)
     if idx is None:
-        # No pre-existing empty slot. Only fall back to appending a brand new
-        # one if the customer is genuinely still under their plan quota (this
-        # covers quota tracking being out of sync) — never hand out more
-        # accounts than they're actually paying for. Without this check, a
-        # stale/ghost queue entry could keep silently bolting extra accounts
-        # onto a customer beyond their plan (e.g. 2 accounts on a 1-account plan).
-        quota = _get_quota(user_id)
-        current_total = len(store.get_customer_adbots(user_id))
-        if current_total >= quota:
-            await db.mark_ad_account_status_no_fulfill(account_id, "free")
-            print(f"[_assign_account] refused to give user {user_id} an account beyond their quota ({quota}); account {account_id} returned to the free pool.")
-            return
+        # No pre-existing empty slot (e.g. quota tracking out of sync) — fall back
+        # to appending a brand new slot rather than failing.
         store.add_customer_adbot(user_id, None, account_id)
         adbots = store.get_customer_adbots(user_id)
         idx = len(adbots) - 1
@@ -192,6 +183,7 @@ async def cb_subscription(callback: CallbackQuery):
 
 @router.callback_query(F.data == "myad:manage")
 async def cb_manage(callback: CallbackQuery):
+    cancel_user(callback.from_user.id)
     user_id = callback.from_user.id
     adbots = store.get_customer_adbots(user_id)
     rows = []
@@ -213,6 +205,7 @@ def _account_edit_rows(idx, assigned=True):
         rows.append([{"text": "Edit Username", "callback_data": f"myad:editusername:{idx}"}])
     rows.append([{"text": "Edit Photo", "callback_data": f"myad:editphoto:{idx}"}])
     rows.append([{"text": "Copy Your Profile", "callback_data": f"myad:copyprofile:{idx}"}])
+    rows.append([{"text": "Copy Someone Else Profile", "callback_data": f"myad:copyother:{idx}"}])
     rows.append([{"text": "Back", "callback_data": "myad:manage"}])
     return rows
 
@@ -227,7 +220,14 @@ async def cb_copy_profile(callback: CallbackQuery):
     bot = adbots[idx]
 
     tg_user = callback.from_user
-    display_name = f"{tg_user.first_name or 'User'} #{idx + 1}"
+    display_name = " ".join(
+        value
+        for value in (
+            tg_user.first_name,
+            tg_user.last_name,
+        )
+        if value
+    ).strip() or "User"
     bio = ""
     is_assigned = bot.get("ad_account_id") is not None
 
@@ -259,6 +259,44 @@ async def cb_copy_profile(callback: CallbackQuery):
         print(f"[copy_profile] photo copy failed: {e}")
     await bot_api.session.close()
     await callback.answer("Profile copied to your Ad Bot Account." if ok_name else "Copy partially failed, please try again.", show_alert=True)
+
+@router.callback_query(F.data.startswith("myad:copyother:"))
+async def cb_copy_other_profile(callback: CallbackQuery):
+    user_id = callback.from_user.id
+
+    try:
+        idx = int(callback.data.split(":", 2)[2])
+    except (TypeError, ValueError):
+        await callback.answer("Invalid account.", show_alert=True)
+        return
+
+    adbots = store.get_customer_adbots(user_id)
+
+    if idx < 0 or idx >= len(adbots):
+        await callback.answer("Account not found.", show_alert=True)
+        return
+
+    slot = adbots[idx]
+
+    if slot.get("ad_account_id") is None:
+        await callback.answer(
+            "This AdBot account is pending. It has not been assigned yet.",
+            show_alert=True,
+        )
+        return
+
+    EDIT_PENDING[user_id] = {
+        "step": "await_copy_other_username",
+        "index": idx,
+    }
+
+    await callback.message.answer(
+        "Send the Telegram username of your other account.\n\n"
+        "Example: @exampleuser\n"
+        "You can also send it without @."
+    )
+    await callback.answer()
+
 
 @router.callback_query(F.data.startswith("myad:manage_one:"))
 async def cb_manage_one(callback: CallbackQuery):
@@ -316,6 +354,137 @@ async def on_edit_text(message: Message):
     if not pending:
         return
     step = pending["step"]
+
+    if step == "await_copy_other_username":
+        import re
+
+        username = message.text.strip().lstrip("@")
+
+        if not re.fullmatch(r"[A-Za-z0-9_]{5,32}", username):
+            await message.reply(
+                "That doesn't look like a valid Telegram username. "
+                "Please send something like @exampleuser."
+            )
+            return
+
+        idx = pending.get("index")
+        adbots = store.get_customer_adbots(user_id)
+
+        if idx is None or idx < 0 or idx >= len(adbots):
+            EDIT_PENDING.pop(user_id, None)
+            await message.reply("That Ad Bot Account could not be found.")
+            return
+
+        slot = adbots[idx]
+
+        if slot.get("ad_account_id") is None:
+            EDIT_PENDING.pop(user_id, None)
+            await message.reply(
+                "This AdBot account is pending. It has not been assigned yet."
+            )
+            return
+
+        try:
+            client = await engine.get_client(slot["ad_account_id"])
+
+            profile = await pu.fetch_profile_from_username(
+                client,
+                username,
+            )
+
+            if not profile:
+                EDIT_PENDING.pop(user_id, None)
+                await message.reply(
+                    "I couldn't access that Telegram profile. "
+                    "Please check the username and try again."
+                )
+                return
+
+            base_name = profile["name"]
+            bio = profile["bio"]
+            photo_bytes = profile["photo_bytes"]
+
+            # Store the base profile name only.
+            # slot_display_name() adds #1/#2/etc.
+            store.rename_customer_adbot(
+                user_id,
+                idx,
+                base_name,
+            )
+
+            store.set_slot_bio(
+                user_id,
+                idx,
+                bio,
+            )
+
+            if photo_bytes:
+                store.set_slot_photo(user_id, idx, None)
+                store.set_slot_cached_photo(
+                    user_id,
+                    idx,
+                    photo_bytes,
+                )
+            else:
+                store.set_slot_photo(user_id, idx, None)
+                store.set_slot_cached_photo(
+                    user_id,
+                    idx,
+                    None,
+                )
+
+            current_slot = store.get_customer_adbots(user_id)[idx]
+
+            display_name = store.slot_display_name(
+                current_slot,
+                idx,
+            )
+
+            ok_name = await pu.update_name_bio(
+                client,
+                display_name,
+                bio,
+            )
+
+            photo_ok = True
+
+            if photo_bytes:
+                photo_ok = await pu.update_photo_from_bytes(
+                    client,
+                    photo_bytes,
+                )
+
+            EDIT_PENDING.pop(user_id, None)
+
+            if ok_name and photo_ok:
+                await message.reply(
+                    f"Profile copied successfully. "
+                    f"The account now appears as {display_name}."
+                )
+            elif ok_name:
+                await message.reply(
+                    f"Name and bio copied to {display_name}, "
+                    "but the profile photo could not be updated."
+                )
+            else:
+                await message.reply(
+                    "The profile was saved, but the live Ad Bot update failed."
+                )
+
+        except Exception as e:
+            print(
+                f"[copy_other_profile] failed "
+                f"user={user_id} slot={idx} username={username}: {e}"
+            )
+
+            EDIT_PENDING.pop(user_id, None)
+
+            await message.reply(
+                "I couldn't access that Telegram profile. "
+                "Please check the username and try again."
+            )
+
+        return
 
     if step == "await_dash_photo":
         if message.text.strip() == "0":
@@ -398,6 +567,7 @@ async def on_edit_photo(message: Message):
 
 @router.callback_query(F.data == "myad:logs")
 async def cb_logs(callback: CallbackQuery):
+    cancel_user(callback.from_user.id)
     user_id = callback.from_user.id
     adbots = store.get_customer_adbots(user_id)
     if not adbots:
@@ -407,7 +577,12 @@ async def cb_logs(callback: CallbackQuery):
         await _logs_for_account(callback.message.chat.id, callback.message.message_id, adbots[0]["ad_account_id"])
         await callback.answer()
         return
-    rows = [[{"text": store.slot_display_name(bot, i), "callback_data": f"dashlogs:acct:{i}"}] for i, bot in enumerate(adbots)]
+    rows = []
+    for i, bot in enumerate(adbots):
+        label = store.slot_display_name(bot, i)
+        if bot.get("ad_account_id") is None:
+            label += " (pending)"
+        rows.append([{"text": label, "callback_data": f"dashlogs:acct:{i}"}])
     rows.append([{"text": "Back", "callback_data": "myadbot:open"}])
     await raw_api.render(callback.message.chat.id, callback.message.message_id, "<b>Advertisement Logs</b>\n\nWhich Ad Bot Account's logs do you want to see?", rows)
     await callback.answer()
@@ -417,8 +592,15 @@ async def cb_dashboard_logs_account(callback: CallbackQuery):
     user_id = callback.from_user.id
     idx = int(callback.data.split(":", 2)[2])
     adbots = store.get_customer_adbots(user_id)
-    if idx >= len(adbots) or adbots[idx].get("ad_account_id") is None:
+    if idx >= len(adbots):
         await callback.answer("That account no longer exists.", show_alert=True)
+        return
+
+    if adbots[idx].get("ad_account_id") is None:
+        await callback.answer(
+            "This AdBot account is pending. It has not been assigned yet.",
+            show_alert=True,
+        )
         return
     await _logs_for_account(callback.message.chat.id, callback.message.message_id, adbots[idx]["ad_account_id"])
     await callback.answer()
@@ -426,12 +608,18 @@ async def cb_dashboard_logs_account(callback: CallbackQuery):
 
 @router.callback_query(F.data == "myad:live")
 async def cb_live_ads(callback: CallbackQuery):
+    cancel_user(callback.from_user.id)
     user_id = callback.from_user.id
     adbots = store.get_customer_adbots(user_id)
     if not adbots:
         await callback.answer("You don't have any Ad Bot Accounts yet.", show_alert=True)
         return
-    rows = [[{"text": store.slot_display_name(bot, i), "callback_data": f"myad:live_one:{i}"}] for i, bot in enumerate(adbots)]
+    rows = []
+    for i, bot in enumerate(adbots):
+        label = store.slot_display_name(bot, i)
+        if bot.get("ad_account_id") is None:
+            label += " (pending)"
+        rows.append([{"text": label, "callback_data": f"myad:live_one:{i}"}])
     rows.append([{"text": "Back", "callback_data": "myadbot:open"}])
     await raw_api.render(callback.message.chat.id, callback.message.message_id, "<b>Live Advertisement</b>\n\nSelect an account:", rows)
     await callback.answer()
@@ -445,6 +633,15 @@ async def cb_live_one(callback: CallbackQuery):
         await callback.answer("Not found.", show_alert=True)
         return
     bot = adbots[idx]
+
+    if bot.get("ad_account_id") is None:
+        display_name = store.slot_display_name(bot, idx)
+        await callback.answer(
+            "This AdBot account is pending. It has not been assigned yet.",
+            show_alert=True,
+        )
+        return
+
     ad = await db.get_active_ad_for_account(bot["ad_account_id"])
 
     if not ad:
@@ -574,18 +771,34 @@ async def _logs_for_account(chat_id, msg_id, ad_account_id, send_new=False):
 
 @router.message(Command("logs"))
 async def cmd_logs(message: Message):
+    cancel_user(message.from_user.id)
     user_id = message.from_user.id
-    if not has_active_subscription(user_id):
-        await message.reply("Your subscription has expired. Tap Buy Ad Bot to renew and get set up again.")
-        return
     adbots = store.get_customer_adbots(user_id)
     if not adbots:
         await message.reply("You don't have any Ad Bot Accounts yet.")
         return
     if len(adbots) == 1:
-        await _logs_for_account(message.chat.id, None, adbots[0]["ad_account_id"], send_new=True)
+        if adbots[0].get("ad_account_id") is None:
+            await message.reply(
+                "This AdBot account is pending. It has not been assigned yet."
+            )
+            return
+
+        await _logs_for_account(
+            message.chat.id,
+            None,
+            adbots[0]["ad_account_id"],
+            send_new=True,
+        )
         return
-    rows = [[{"text": store.slot_display_name(bot, i), "callback_data": f"quicklogs:acct:{i}"}] for i, bot in enumerate(adbots)]
+    rows = []
+    for i, bot in enumerate(adbots):
+        label = store.slot_display_name(bot, i)
+        if bot.get("ad_account_id") is None:
+            label += " (pending)"
+        rows.append([
+            {"text": label, "callback_data": f"quicklogs:acct:{i}"}
+        ])
     await raw_api.send_message(message.chat.id, "Which Ad Bot Account's logs do you want to see?", rows)
 
 @router.callback_query(F.data.startswith("quicklogs:acct:"))
@@ -601,10 +814,8 @@ async def cb_quicklogs_account(callback: CallbackQuery):
 
 @router.message(Command("ad"))
 async def cmd_ad(message: Message):
+    cancel_user(message.from_user.id)
     user_id = message.from_user.id
-    if not has_active_subscription(user_id):
-        await message.reply("Your subscription has expired. Tap Buy Ad Bot to renew and get set up again.")
-        return
     parts = message.text.split(maxsplit=1)
     if len(parts) < 2:
         await message.reply("Usage: /ad <message link>\n\nExample: /ad https://t.me/yourchannel/5")
@@ -660,31 +871,39 @@ async def cmd_ad(message: Message):
 
 @router.message(Command("manage"))
 async def cmd_manage_shortcut(message: Message):
+    cancel_user(message.from_user.id)
     user_id = message.from_user.id
-    if not has_active_subscription(user_id):
-        await message.reply("Your subscription has expired. Tap Buy Ad Bot to renew and get set up again.")
-        return
     adbots = store.get_customer_adbots(user_id)
     if not adbots:
         await message.reply("You don't have any Ad Bot Accounts yet.")
         return
     rows = []
     for i, bot in enumerate(adbots):
-        rows.append([{"text": store.slot_display_name(bot, i), "callback_data": f"myad:manage_one:{i}"}])
+        label = store.slot_display_name(bot, i)
+        if bot.get("ad_account_id") is None:
+            label += " (pending)"
+        rows.append([
+            {"text": label, "callback_data": f"myad:manage_one:{i}"}
+        ])
     rows.append([{"text": "Back", "callback_data": "myadbot:open"}])
     await raw_api.send_message(message.chat.id, "<b>Manage Ad Bot</b>\n\nSelect an account:", rows)
 
 @router.message(Command("live"))
 async def cmd_live_shortcut(message: Message):
+    cancel_user(message.from_user.id)
     user_id = message.from_user.id
-    if not has_active_subscription(user_id):
-        await message.reply("Your subscription has expired. Tap Buy Ad Bot to renew and get set up again.")
-        return
     adbots = store.get_customer_adbots(user_id)
     if not adbots:
         await message.reply("You don't have any Ad Bot Accounts yet.")
         return
-    rows = [[{"text": store.slot_display_name(bot, i), "callback_data": f"myad:live_one:{i}"}] for i, bot in enumerate(adbots)]
+    rows = []
+    for i, bot in enumerate(adbots):
+        label = store.slot_display_name(bot, i)
+        if bot.get("ad_account_id") is None:
+            label += " (pending)"
+        rows.append([
+            {"text": label, "callback_data": f"myad:live_one:{i}"}
+        ])
     rows.append([{"text": "Back", "callback_data": "myadbot:open"}])
     await raw_api.send_message(message.chat.id, "<b>Live Advertisement</b>\n\nSelect an account:", rows)
 
