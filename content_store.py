@@ -189,7 +189,7 @@ def get_subscription(user_id):
     subs = load_subscriptions()
     return subs.get(str(user_id))
 
-def activate_subscription(user_id, plan_id, months=1):
+def activate_subscription(user_id, plan_id, months=1, days=None):
     import time as _time
     subs = load_subscriptions()
     key = str(user_id)
@@ -198,7 +198,11 @@ def activate_subscription(user_id, plan_id, months=1):
     start = now
     if existing and existing.get("expiry", 0) > now:
         start = existing["expiry"]  # renewing before expiry extends from current expiry, not from now
-    expiry = start + (months * 30 * 24 * 60 * 60)
+    if days is not None:
+        duration_seconds = days * 24 * 60 * 60
+    else:
+        duration_seconds = months * 30 * 24 * 60 * 60
+    expiry = start + duration_seconds
     subs[key] = {
         "plan_id": plan_id,
         "purchase_date": now,
