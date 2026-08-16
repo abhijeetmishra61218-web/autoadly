@@ -1,6 +1,17 @@
 # content_store.py
 import json
 import os
+import re
+
+def normalize_phone(raw: str) -> str:
+    """Strips spaces/dashes/parens/etc out of a phone number, keeping a single
+       leading '+' if present."""
+    if not raw:
+        return raw
+    raw = raw.strip()
+    has_plus = raw.startswith("+")
+    digits = re.sub(r"\D", "", raw)
+    return ("+" + digits) if has_plus else digits
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PLANS_FILE = os.path.join(BASE_DIR, "plans.json")
