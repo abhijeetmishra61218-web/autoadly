@@ -36,6 +36,7 @@ async def main():
     asyncio.create_task(github_backup.backup_loop())
     asyncio.create_task(subscription_expiry.expiry_loop())
     asyncio.create_task(restriction_monitor.daily_recheck_loop())
+    asyncio.create_task(restriction_monitor.sweep_loop())
     asyncio.create_task(engine.start_engine())
     asyncio.create_task(account_setup.resume_unsynced_joins())
 
