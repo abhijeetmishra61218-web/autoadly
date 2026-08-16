@@ -294,13 +294,11 @@ async def start_engine():
     tasks.append(asyncio.create_task(cleanup_loop()))
     tasks.append(asyncio.create_task(watch_for_new_ads()))
 
-    # Separate, independent staggered sweet-spot scheduler for marketplaces
-    # already auto-demoted to 'low' quality (skipped entirely by the loop
-    # above). Runs on its own task/schedule and cannot affect the main
-    # rotation. (Replaces the older low_quality_engine.py adaptive-ladder
-    # module — that file is still on disk but no longer started here.)
-    import low_quality_stagger
-    tasks.append(asyncio.create_task(low_quality_stagger.watch_low_quality_marketplaces()))
+    # Separate, independent adaptive-schedule engine for marketplaces already
+    # auto-demoted to 'low' quality (skipped entirely by the loop above).
+    # Runs on its own task/schedule and cannot affect the main rotation.
+    import low_quality_engine
+    tasks.append(asyncio.create_task(low_quality_engine.watch_low_quality_marketplaces()))
 
     await asyncio.gather(*tasks)
 

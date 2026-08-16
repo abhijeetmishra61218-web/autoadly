@@ -71,21 +71,6 @@ CREATE TABLE IF NOT EXISTS post_logs (
     posted_at REAL,
     message_link TEXT
 );
-
--- Staggered sweet-spot scheduler state for low-quality marketplaces (see
--- low_quality_stagger.py). One row per (ad, marketplace) pair currently
--- being tested or already graduated to a fixed posting interval.
-CREATE TABLE IF NOT EXISTS sweet_spot_state (
-    ad_id INTEGER,
-    marketplace_id INTEGER,
-    slot_index INTEGER,
-    interval_seconds INTEGER,
-    state TEXT DEFAULT 'testing',
-    streak INTEGER DEFAULT 0,
-    next_run_at REAL,
-    list_id INTEGER,
-    PRIMARY KEY (ad_id, marketplace_id)
-);
 """
 
 async def init_db():
@@ -229,77 +214,6 @@ async def get_active_advertisements():
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM advertisements WHERE status = 'active'")
         return await cursor.fetchall()
-
-# ---- Staggered sweet-spot scheduler state (low_quality_stagger.py) ----
-
-async def get_sweet_spot_state(ad_id: int, marketplace_id: int):
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute(
-            "SELECT * FROM sweet_spot_state WHERE ad_id = ? AND marketplace_id = ?",
-            (ad_id, marketplace_id)
-        )
-        return await cursor.fetchone()
-
-async def count_sweet_spot_slots(ad_id: int) -> int:
-    """How many marketplaces have ever been assigned a stagger slot for this
-       ad — used as the next slot_index so freshly-discovered (or re-queued)
-       marketplaces line up after the ones already testing/graduated."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute("SELECT COUNT(*) FROM sweet_spot_state WHERE ad_id = ?", (ad_id,))
-        row = await cursor.fetchone()
-        return row[0] if row else 0
-
-async def create_sweet_spot_state(ad_id: int, marketplace_id: int, slot_index: int, interval_seconds: int, next_run_at: float):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "INSERT OR IGNORE INTO sweet_spot_state "
-            "(ad_id, marketplace_id, slot_index, interval_seconds, state, streak, next_run_at) "
-            "VALUES (?, ?, ?, ?, 'testing', 0, ?)",
-            (ad_id, marketplace_id, slot_index, interval_seconds, next_run_at)
-        )
-        await db.commit()
-
-async def update_sweet_spot_progress(ad_id: int, marketplace_id: int, next_run_at: float, streak: int):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "UPDATE sweet_spot_state SET next_run_at = ?, streak = ? WHERE ad_id = ? AND marketplace_id = ?",
-            (next_run_at, streak, ad_id, marketplace_id)
-        )
-        await db.commit()
-
-async def graduate_sweet_spot_state(ad_id: int, marketplace_id: int, list_id: int):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "UPDATE sweet_spot_state SET state = 'graduated', streak = 0, list_id = ? WHERE ad_id = ? AND marketplace_id = ?",
-            (list_id, ad_id, marketplace_id)
-        )
-        await db.commit()
-
-async def delete_sweet_spot_state(ad_id: int, marketplace_id: int):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("DELETE FROM sweet_spot_state WHERE ad_id = ? AND marketplace_id = ?", (ad_id, marketplace_id))
-        await db.commit()
-
-async def get_all_sweet_spot_states():
-    """All sweet_spot_state rows (testing + graduated), joined with the
-       marketplace's username, ordered for a grouped-by-ad admin view."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute("""
-            SELECT s.*, m.chat_username FROM sweet_spot_state s
-            JOIN marketplaces m ON m.id = s.marketplace_id
-            ORDER BY s.ad_id, s.slot_index
-        """)
-        return await cursor.fetchall()
-
-async def remove_marketplace_from_list(list_id: int, marketplace_id: int):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "DELETE FROM marketplace_list_items WHERE list_id = ? AND marketplace_id = ?",
-            (list_id, marketplace_id)
-        )
-        await db.commit()
 
 async def get_ad_account_session(ad_account_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
