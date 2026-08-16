@@ -198,6 +198,9 @@ async def run_advertisement_loop(ad):
     index = ad["current_index"] % len(marketplaces)
     pace = _pace_counters.setdefault(ad_id, 0)
 
+    startup_delay = random.uniform(5, 90)
+    await asyncio.sleep(startup_delay)
+
     try:
         while True:
             # re-check status each cycle in case it was stopped/replaced
