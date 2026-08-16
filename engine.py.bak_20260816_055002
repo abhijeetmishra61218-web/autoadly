@@ -132,7 +132,7 @@ async def _post_to_marketplace_core(client: TelegramClient, ad, marketplace):
             ))
             try:
                 import restriction_monitor
-                restriction_monitor.record_marketplace_success(_post_account_id, marketplace["id"])
+                restriction_monitor.record_marketplace_success(_post_account_id)
             except Exception:
                 pass
             new_msg_id = _extract_new_message_id(result)
@@ -152,7 +152,7 @@ async def _post_to_marketplace_core(client: TelegramClient, ad, marketplace):
                 ))
                 try:
                     import restriction_monitor
-                    restriction_monitor.record_marketplace_success(_post_account_id, marketplace["id"])
+                    restriction_monitor.record_marketplace_success(_post_account_id)
                 except Exception:
                     pass
                 new_msg_id = _extract_new_message_id(result)

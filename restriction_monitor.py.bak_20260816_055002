@@ -16,108 +16,23 @@ import engine
 
 router = Router()
 
-# ---- Live failure-ratio notifier -----------------------------------------
-# Tracks, per ad_account_id, which marketplaces are CURRENTLY failing (based on
-# their most recent post attempt) with a ban/write-restriction error. Once that
-# reaches FAILURE_RATIO_THRESHOLD of the account's eligible (non-low-quality)
-# marketplaces, the owner gets a notify-only alert — no auto-replacement, the
-# owner decides what to do (e.g. via the full sweep's Replace button below).
-FAILURE_RATIO_THRESHOLD = 0.6
-_failing_marketplaces = {}   # ad_account_id -> set of marketplace_id currently failing
-_ratio_flagged = set()       # ad_account_id already notified for the current breach —
-                              # cleared once the ratio drops back below threshold so a
-                              # fresh breach later can notify again.
-
-async def _eligible_marketplaces(ad_account_id: int):
-    """Non-low-quality marketplaces in this account's active ad list — mirrors
-       the same filtering engine.py's main rotation already applies."""
-    existing_ad = await db.get_active_ad_for_account(ad_account_id)
-    if not existing_ad:
-        return []
-    all_marketplaces = await db.get_list_marketplaces(existing_ad["marketplace_list_id"])
-    return [m for m in all_marketplaces if m["quality_tier"] != "low"]
+# Tracks consecutive UserBannedInChannelError failures per ad_account_id.
+# If an account fails on N consecutive DIFFERENT marketplaces, we treat it as
+# genuinely restricted (not just one bad group) and start the replacement flow.
+_ban_streak = {}
+BAN_STREAK_THRESHOLD = 5
+_already_flagged = set()
 
 async def record_marketplace_ban(ad_account_id: int, marketplace_id: int):
-    """Called on every post failure caused by a ban/write-restriction on a
-       specific marketplace. Updates the live failing snapshot and notifies the
-       owner (no auto-replace) once >=60% of eligible marketplaces are failing."""
-    failing = _failing_marketplaces.setdefault(ad_account_id, set())
-    failing.add(marketplace_id)
+    streak = _ban_streak.setdefault(ad_account_id, set())
+    streak.add(marketplace_id)
+    if len(streak) >= BAN_STREAK_THRESHOLD and ad_account_id not in _already_flagged:
+        _already_flagged.add(ad_account_id)
+        asyncio.create_task(handle_suspected_restriction(ad_account_id))
 
-    if ad_account_id in _ratio_flagged:
-        return  # already notified for this breach — don't spam repeatedly
-
-    eligible = await _eligible_marketplaces(ad_account_id)
-    if not eligible:
-        return
-    eligible_ids = {m["id"] for m in eligible}
-    currently_failing_ids = failing & eligible_ids
-    ratio = len(currently_failing_ids) / len(eligible)
-    if ratio < FAILURE_RATIO_THRESHOLD:
-        return
-
-    _ratio_flagged.add(ad_account_id)
-    asyncio.create_task(notify_owner_marketplace_failure_ratio(ad_account_id, currently_failing_ids, eligible))
-
-def record_marketplace_success(ad_account_id: int, marketplace_id: int):
-    """Called on every successful post. Clears that marketplace from the live
-       failing snapshot, and — once the ratio drops back below threshold —
-       clears the notify flag so a future breach can notify again."""
-    failing = _failing_marketplaces.get(ad_account_id)
-    if failing:
-        failing.discard(marketplace_id)
-    if ad_account_id in _ratio_flagged:
-        asyncio.create_task(_maybe_unflag(ad_account_id))
-
-async def _maybe_unflag(ad_account_id: int):
-    eligible = await _eligible_marketplaces(ad_account_id)
-    if not eligible:
-        _ratio_flagged.discard(ad_account_id)
-        return
-    eligible_ids = {m["id"] for m in eligible}
-    failing = _failing_marketplaces.get(ad_account_id, set()) & eligible_ids
-    ratio = len(failing) / len(eligible)
-    if ratio < FAILURE_RATIO_THRESHOLD:
-        _ratio_flagged.discard(ad_account_id)
-
-async def notify_owner_marketplace_failure_ratio(ad_account_id: int, failing_ids: set, eligible: list):
-    """Notify-only alert: this account can't post to >=60% of its eligible
-       marketplaces right now. No auto-replacement — use the full sweep's
-       Replace button (or your own tools) if you decide to act on it."""
-    admins = store.load_admins()
-    owner_id = admins.get("owner_id")
-    if not owner_id:
-        return
-
-    account = await db.get_ad_account_by_id(ad_account_id)
-    target_uid, target_idx, target_name = _find_customer_slot(ad_account_id)
-
-    failing_names = [m.get("chat_username") or str(m["id"]) for m in eligible if m["id"] in failing_ids]
-    ratio_pct = round(100 * len(failing_ids) / len(eligible))
-
-    lines = [
-        f"⚠️ Ad Bot Account ID {ad_account_id} ({account['phone']}) can't post to "
-        f"{ratio_pct}% of its marketplaces ({len(failing_ids)}/{len(eligible)}, low-quality ones excluded).",
-        "",
-        "Currently failing:",
-    ]
-    lines.extend(f"  • {n}" for n in failing_names[:20])
-    if len(failing_names) > 20:
-        lines.append(f"  ...and {len(failing_names) - 20} more")
-    if target_uid is not None:
-        lines.append(f"\nCustomer: user_id={target_uid}" + (f" — {target_name}" if target_name else ""))
-    lines.append("\nThis is a notify-only alert — no automatic replacement was made.")
-
-    rows = []
-    if target_uid is not None:
-        rows = [[
-            {"text": "Notify Customer", "callback_data": f"restrictdetected:{target_uid}:{target_idx}:yes"},
-            {"text": "Don't Notify", "callback_data": f"restrictdetected:{target_uid}:{target_idx}:no"},
-        ]]
-    try:
-        await raw_api.send_message(owner_id, "\n".join(lines), rows)
-    except Exception as e:
-        print(f"[restriction_monitor] could not notify owner of marketplace failure ratio: {e}")
+def record_marketplace_success(ad_account_id: int):
+    _ban_streak.pop(ad_account_id, None)
+    _already_flagged.discard(ad_account_id)
 
 def _find_customer_slot(ad_account_id: int):
     """Returns (user_id, index, name) for whichever customer/slot currently
@@ -151,6 +66,51 @@ def _spambot_indicates_restriction(reply_text: str) -> bool:
     clean_signals = ["no limits are currently applied", "free as a bird", "no limits"]
     return not any(signal in lowered for signal in clean_signals)
 
+async def handle_suspected_restriction(ad_account_id: int):
+    account = await db.get_ad_account_by_id(ad_account_id)
+    spambot_reply = await check_via_spambot(ad_account_id)
+
+    admins = store.load_admins()
+    owner_id = admins.get("owner_id")
+    if not owner_id:
+        return
+
+    if not _spambot_indicates_restriction(spambot_reply):
+        # False alarm — account is genuinely clean. Clear the ban streak and just inform the owner, no replacement.
+        record_marketplace_success(ad_account_id)
+        try:
+            await raw_api.send_message(
+                owner_id,
+                f"Checked Account ID {ad_account_id} ({account['phone']}) via @SpamBot after repeated post failures — it's actually clean:\n\n{spambot_reply}\n\nNo replacement needed. The recent failures were likely a per-group issue (e.g. a specific group's restriction), not an account-wide ban.",
+                [],
+            )
+        except Exception as e:
+            print(f"[restriction_monitor] could not notify owner of false alarm: {e}")
+        return
+
+    # Find which customer/slot owns this account, so we can offer to notify them right away
+    target_uid, target_idx, target_name = _find_customer_slot(ad_account_id)
+
+    text = (
+        f"⚠️ Ad Bot Account restriction suspected!\n\n"
+        f"Account ID: {ad_account_id}\n"
+        f"Phone: {account['phone']}\n\n"
+        f"@SpamBot says:\n{spambot_reply}\n\n"
+        f"We are replacing it now if a free account is available."
+    )
+    rows = []
+    if target_uid is not None:
+        rows = [[
+            {"text": "Notify Customer Now", "callback_data": f"restrictdetected:{target_uid}:{target_idx}:yes"},
+            {"text": "Don't Notify", "callback_data": f"restrictdetected:{target_uid}:{target_idx}:no"},
+        ]]
+    try:
+        await raw_api.send_message(owner_id, text, rows)
+    except Exception as e:
+        print(f"[restriction_monitor] could not notify owner: {e}")
+
+    await do_replacement(ad_account_id, owner_id, target_uid, target_idx, target_name)
+
 @router.callback_query(F.data.startswith("restrictdetected:"))
 async def cb_restrict_detected_notify(callback: CallbackQuery):
     if not store.is_admin(callback.from_user.id):
@@ -175,9 +135,7 @@ async def cb_restrict_detected_notify(callback: CallbackQuery):
 
 async def do_replacement(old_account_id: int, owner_id: int, target_uid=None, target_idx=None, target_name=None):
     if target_uid is None:
-        # Find which customer/slot owns this account (this is invoked directly — from
-        # the full sweep's Replace button, or a queued replacement — not via any
-        # automatic trigger; the reactive ban-streak auto-replace flow was removed)
+        # Find which customer/slot owns this account (fallback if called directly, not via handle_suspected_restriction)
         target_uid, target_idx, target_name = _find_customer_slot(old_account_id)
     if target_uid is None:
         return  # unassigned account, nothing to replace for
