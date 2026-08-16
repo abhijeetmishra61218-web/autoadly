@@ -71,7 +71,7 @@
   "8897259158": [
     {
       "name": "Adbot #1",
-      "ad_account_id": 15,
+      "ad_account_id": null,
       "bio": null,
       "photo_file_id": null
     }
@@ -83,5 +83,6 @@
       "bio": "",
       "photo_file_id": "AgACAgQAAxUAAWp_8CKgKW5XSppSlt7NGJ71v8aJAALOEWsb2_nQUxuCIAzakLQWAQADAgADYwADPQQ"
     }
-  ]
+  ],
+  "6229897436": []
 }
