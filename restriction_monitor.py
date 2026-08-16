@@ -151,6 +151,77 @@ def _spambot_indicates_restriction(reply_text: str) -> bool:
     clean_signals = ["no limits are currently applied", "free as a bird", "no limits"]
     return not any(signal in lowered for signal in clean_signals)
 
+# ---- Restart-proof stall detector ------------------------------------------
+# Unlike the live failure-ratio tracker above (which resets to zero on every
+# process restart and needs sustained uptime to accumulate a 60% breach), this
+# checks a value persisted in the database: how long since this account's LAST
+# real successful post. A total-failure account (ban, dead session, dead
+# source channel, etc.) fails every single attempt from the start, so this
+# catches it fast and survives restarts -- it doesn't need to "build up" state.
+STALL_THRESHOLD_SECONDS = 20 * 60   # alert if no success in 20 min despite active attempts
+STALL_RE_ALERT_COOLDOWN = 60 * 60   # don't re-alert on the same account more than once/hour
+
+async def watch_for_stalled_accounts():
+    while True:
+        try:
+            await _check_stalled_accounts_once()
+        except Exception as e:
+            print(f"[restriction_monitor] watch_for_stalled_accounts error: {e}")
+        await asyncio.sleep(5 * 60)
+
+async def _check_stalled_accounts_once():
+    now_ts = __import__("time").time()
+    active_ads = await db.get_active_advertisements()
+    active_account_ids = {a["ad_account_id"] for a in active_ads}
+    activity_rows = {r["ad_account_id"]: r for r in await db.get_all_account_activity()}
+
+    for ad_account_id in active_account_ids:
+        row = activity_rows.get(ad_account_id)
+        if not row or not row["loop_started_at"]:
+            continue  # loop hasn't recorded a start yet, nothing to check
+
+        reference_time = row["last_success_at"] or row["loop_started_at"]
+        elapsed = now_ts - reference_time
+        if elapsed < STALL_THRESHOLD_SECONDS:
+            continue
+
+        last_alert = row["last_alert_at"]
+        if last_alert and (now_ts - last_alert) < STALL_RE_ALERT_COOLDOWN:
+            continue
+
+        await db.mark_alert_sent(ad_account_id)
+        asyncio.create_task(notify_owner_account_stalled(ad_account_id, elapsed))
+
+async def notify_owner_account_stalled(ad_account_id: int, elapsed_seconds: float):
+    admins = store.load_admins()
+    owner_id = admins.get("owner_id")
+    if not owner_id:
+        return
+    account = await db.get_ad_account_by_id(ad_account_id)
+    target_uid, target_idx, target_name = _find_customer_slot(ad_account_id)
+    elapsed_min = round(elapsed_seconds / 60)
+
+    lines = [
+        f"\u26a0\ufe0f Ad Bot Account ID {ad_account_id} ({account['phone']}) hasn't posted "
+        f"successfully in {elapsed_min} minutes despite actively attempting.",
+        "",
+        "This usually means a full account restriction, dead session, or a dead source channel -- "
+        "not just a few unreachable marketplaces.",
+    ]
+    if target_uid is not None:
+        lines.append(f"\nCustomer: user_id={target_uid}" + (f" -- {target_name}" if target_name else ""))
+
+    rows = []
+    if target_uid is not None:
+        rows = [[
+            {"text": "Notify Customer", "callback_data": f"restrictdetected:{target_uid}:{target_idx}:yes"},
+            {"text": "Don't Notify", "callback_data": f"restrictdetected:{target_uid}:{target_idx}:no"},
+        ]]
+    try:
+        await raw_api.send_message(owner_id, "\n".join(lines), rows)
+    except Exception as e:
+        print(f"[restriction_monitor] could not notify owner of stalled account: {e}")
+
 @router.callback_query(F.data.startswith("restrictdetected:"))
 async def cb_restrict_detected_notify(callback: CallbackQuery):
     if not store.is_admin(callback.from_user.id):

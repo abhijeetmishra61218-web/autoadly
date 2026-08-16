@@ -5,6 +5,13 @@ import time
 DB_PATH = "ad_bot.db"
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS account_activity (
+    ad_account_id INTEGER PRIMARY KEY,
+    loop_started_at REAL,
+    last_success_at REAL,
+    last_alert_at REAL
+);
+
 CREATE TABLE IF NOT EXISTS ad_accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     phone TEXT UNIQUE,
@@ -210,6 +217,41 @@ async def log_success(ad_account_id: int, marketplace_id: int, message_link: str
         await db.execute(
             "INSERT INTO post_logs (ad_account_id, marketplace_id, posted_at, message_link) VALUES (?, ?, ?, ?)",
             (ad_account_id, marketplace_id, time.time(), message_link)
+        )
+        await db.commit()
+
+async def mark_loop_started(ad_account_id: int):
+    """Called once when an ad's posting loop (re)starts. Only sets loop_started_at
+       if this account has no activity row yet, so a restart doesn't reset the
+       stall clock for an account that's already been failing for a while."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO account_activity (ad_account_id, loop_started_at) VALUES (?, ?) "
+            "ON CONFLICT(ad_account_id) DO NOTHING",
+            (ad_account_id, time.time())
+        )
+        await db.commit()
+
+async def mark_post_success(ad_account_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO account_activity (ad_account_id, loop_started_at, last_success_at) VALUES (?, ?, ?) "
+            "ON CONFLICT(ad_account_id) DO UPDATE SET last_success_at = excluded.last_success_at",
+            (ad_account_id, time.time(), time.time())
+        )
+        await db.commit()
+
+async def get_all_account_activity():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT * FROM account_activity")
+        return await cursor.fetchall()
+
+async def mark_alert_sent(ad_account_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE account_activity SET last_alert_at = ? WHERE ad_account_id = ?",
+            (time.time(), ad_account_id)
         )
         await db.commit()
 

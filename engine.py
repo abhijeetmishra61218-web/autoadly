@@ -198,6 +198,8 @@ async def run_advertisement_loop(ad):
     index = ad["current_index"] % len(marketplaces)
     pace = _pace_counters.setdefault(ad_id, 0)
 
+    await db.mark_loop_started(ad["ad_account_id"])
+
     startup_delay = random.uniform(5, 90)
     await asyncio.sleep(startup_delay)
 
@@ -222,6 +224,7 @@ async def run_advertisement_loop(ad):
                     marketplace["id"],
                     posted_link,
                 )
+                await db.mark_post_success(ad["ad_account_id"])
                 logger.info(f"Posted to {marketplace['chat_username']}")
 
             index = (index + 1) % len(marketplaces)
@@ -301,6 +304,9 @@ async def start_engine():
     # module — that file is still on disk but no longer started here.)
     import low_quality_stagger
     tasks.append(asyncio.create_task(low_quality_stagger.watch_low_quality_marketplaces()))
+
+    import restriction_monitor
+    tasks.append(asyncio.create_task(restriction_monitor.watch_for_stalled_accounts()))
 
     await asyncio.gather(*tasks)
 
