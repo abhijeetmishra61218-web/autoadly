@@ -286,6 +286,35 @@ def set_slot_photo(user_id, index, photo_file_id):
         data[key][index]["photo_file_id"] = photo_file_id
         save_customer_adbots(data)
 
+CACHED_SLOT_PHOTOS_DIR = "cached_slot_photos"
+
+def set_slot_cached_photo(user_id, index, photo_bytes):
+    """Cache raw photo bytes for a copied profile (no Telegram Bot-API file_id
+       exists for a photo fetched directly via Telethon from another user)."""
+    data = load_customer_adbots()
+    key = str(user_id)
+    if key not in data or not (0 <= index < len(data[key])):
+        return
+    if photo_bytes is None:
+        data[key][index]["cached_photo_path"] = None
+    else:
+        os.makedirs(CACHED_SLOT_PHOTOS_DIR, exist_ok=True)
+        path = os.path.join(CACHED_SLOT_PHOTOS_DIR, f"{user_id}_{index}.jpg")
+        with open(path, "wb") as f:
+            f.write(photo_bytes)
+        data[key][index]["cached_photo_path"] = path
+    save_customer_adbots(data)
+
+def get_slot_cached_photo(user_id, index):
+    data = load_customer_adbots()
+    key = str(user_id)
+    if key in data and 0 <= index < len(data[key]):
+        path = data[key][index].get("cached_photo_path")
+        if path and os.path.exists(path):
+            with open(path, "rb") as f:
+                return f.read()
+    return None
+
 def slot_display_name(slot, index):
     base = slot.get("name") or "Adbot"
     return f"{base} #{index + 1}"
