@@ -50,9 +50,9 @@
   "6232314773": {
     "plan_id": "starter",
     "purchase_date": 1786896411.6665006,
-    "expiry": 1788105626.5114985,
+    "expiry": 1786945189.5167272,
     "months": 1,
     "notified_soon": false,
-    "reclaimed": false
+    "reclaimed": true
   }
 }
