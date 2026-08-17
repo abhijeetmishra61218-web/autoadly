@@ -23,7 +23,7 @@ async def get_client(ad_account_id: int) -> TelegramClient:
     if ad_account_id in _clients:
         return _clients[ad_account_id]
     account = await db.get_ad_account_session(ad_account_id)
-    client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH, receive_updates=False)
+    client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH)
     await client.connect()
     # Populate this connection's entity cache with every chat the account is a member of.
     # Without this, resolving a chat by numeric ID (t.me/c/... links) fails on a fresh

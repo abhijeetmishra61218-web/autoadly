@@ -48,7 +48,7 @@ async def on_addadbot_text(message: Message):
 
     if step == "await_phone":
         phone = text
-        client = TelegramClient(StringSession(), API_ID, API_HASH, receive_updates=False)
+        client = TelegramClient(StringSession(), API_ID, API_HASH)
         await client.connect()
         try:
             sent = await client.send_code_request(phone)
@@ -259,7 +259,7 @@ async def _report_join_result(account_id):
     account = await db.get_ad_account_by_id(account_id)
     total_marketplaces = len(await db.get_all_marketplace_usernames())
 
-    client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH, receive_updates=False)
+    client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH)
     await client.connect()
     joined_count = 0
     async for dialog in client.iter_dialogs():

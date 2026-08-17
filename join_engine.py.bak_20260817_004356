@@ -38,10 +38,6 @@ def parse_identifier(raw: str):
     return ("username", raw.lstrip("@"))
 
 async def join_one(client: TelegramClient, identifier: str):
-    """Returns the joined entity on success, None if this identifier just can't
-       be joined (private/deleted/invalid — skip and move on), or the string
-       "FLOODWAIT" specifically when Telegram rate-limited us (the only case
-       that should count toward any "stop after N in a row" safety breaker)."""
     kind, value = parse_identifier(identifier)
     if kind == "unsupported":
         print(f"  SKIP (unsupported link format): {identifier}")
@@ -62,7 +58,7 @@ async def join_one(client: TelegramClient, identifier: str):
         return entity
     except FloodWaitError as e:
         print(f"  FLOOD WAIT {e.seconds}s on {identifier}, skipping for now.")
-        return "FLOODWAIT"
+        return None
     except (ChannelPrivateError, UsernameNotOccupiedError, InviteHashExpiredError) as e:
         print(f"  FAILED to join {identifier}: {e}")
         return None
@@ -116,7 +112,7 @@ async def run_join_batch(identifiers: list, progress_callback=None):
     newly_registered = []  # (entity, hint) — synced to master folder once at the end
 
     for i, account in enumerate(accounts):
-        client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH, receive_updates=False)
+        client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH)
         await client.connect()
 
         consecutive_floodwaits = 0
@@ -138,18 +134,16 @@ async def run_join_batch(identifiers: list, progress_callback=None):
 
             print(f"[{account['phone']}] joining {identifier} ...")
             entity = await join_one(client, identifier)
-            if entity == "FLOODWAIT":
-                consecutive_floodwaits += 1
-                if consecutive_floodwaits >= 3:
-                    print(f"[{account['phone']}] hit 3 flood-waits in a row, stopping this account's joins for now to avoid escalating the restriction.")
-                    break
-            elif entity and i == 0:
+            if entity and i == 0:
                 await register_marketplace(client, entity, identifier)
                 newly_registered.append((entity, identifier))
                 joined_count += 1
                 consecutive_floodwaits = 0
-            else:
-                consecutive_floodwaits = 0  # not joinable (private/deleted/etc) — skip it, but this isn't a flood wait
+            elif entity is None:
+                consecutive_floodwaits += 1
+                if consecutive_floodwaits >= 3:
+                    print(f"[{account['phone']}] hit 3 flood-waits in a row, stopping this account's joins for now to avoid escalating the restriction.")
+                    break
             await asyncio.sleep(JOIN_DELAY)
 
         await client.disconnect()
@@ -202,7 +196,7 @@ async def run_join_batch_single_account(ad_account_id: int, identifiers: list, l
     account = await db.get_ad_account_by_id(ad_account_id)
     if not account:
         return
-    client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH, receive_updates=False)
+    client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH)
     await client.connect()
 
     for identifier in identifiers:
@@ -229,7 +223,7 @@ async def run_join_batch_for_specific_account(ad_account_id: int, identifiers: l
     account = await db.get_ad_account_by_id(ad_account_id)
     if not account:
         return
-    client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH, receive_updates=False)
+    client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH)
     await client.connect()
 
     consecutive_floodwaits = 0
@@ -246,15 +240,13 @@ async def run_join_batch_for_specific_account(ad_account_id: int, identifiers: l
             continue
 
         entity = await join_one(client, identifier)
-        if entity == "FLOODWAIT":
+        if entity is None:
             consecutive_floodwaits += 1
             if consecutive_floodwaits >= 3:
                 print(f"[{account['phone']}] hit 3 flood-waits catching up on marketplaces, stopping for now.")
                 break
-        elif entity:
-            consecutive_floodwaits = 0
         else:
-            consecutive_floodwaits = 0  # not joinable (private/deleted/etc) — skip it, but this isn't a flood wait
+            consecutive_floodwaits = 0
         await asyncio.sleep(JOIN_DELAY)
 
     await client.disconnect()
@@ -307,7 +299,7 @@ async def sync_new_marketplace_to_master_folder(entity, chat_username_hint):
         master_account = await db.get_ad_account_by_id(master_id)
         if not master_account:
             return
-        master_client = TelegramClient(StringSession(master_account["session_string"]), API_ID, API_HASH, receive_updates=False)
+        master_client = TelegramClient(StringSession(master_account["session_string"]), API_ID, API_HASH)
         await master_client.connect()
 
         # Join master to this chat if not already a member
