@@ -15,10 +15,11 @@
       "photo_file_id": null
     },
     {
-      "name": "MISHRA @AutoAdlyBot",
+      "name": "AutoAdlyAds",
       "ad_account_id": 4,
       "bio": "Premium Accounts & SM Expert | Services: @GetMyServices | @AutoAdlyBot",
-      "photo_file_id": null
+      "photo_file_id": null,
+      "cached_photo_path": "cached_slot_photos/7530034609_1.jpg"
     },
     {
       "name": "AutoAdly",
