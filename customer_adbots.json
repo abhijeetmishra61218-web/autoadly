@@ -93,5 +93,13 @@
       "bio": null,
       "photo_file_id": null
     }
+  ],
+  "7669578010": [
+    {
+      "name": "Adbot #1",
+      "ad_account_id": 15,
+      "bio": null,
+      "photo_file_id": null
+    }
   ]
 }

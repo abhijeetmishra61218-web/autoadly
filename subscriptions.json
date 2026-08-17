@@ -54,5 +54,13 @@
     "months": 1,
     "notified_soon": false,
     "reclaimed": true
+  },
+  "7669578010": {
+    "plan_id": "starter",
+    "purchase_date": 1786945456.900227,
+    "expiry": 1787550256.900227,
+    "months": 1,
+    "notified_soon": false,
+    "reclaimed": false
   }
 }
