@@ -16,10 +16,12 @@
     "reclaimed": false
   },
   "7530034609": {
-    "plan_id": "elite",
-    "purchase_date": 1785566597.720133,
-    "expiry": 1790749899.662669,
-    "months": 1
+    "plan_id": "starter",
+    "purchase_date": 1787028448.2483306,
+    "expiry": 1793341899.662669,
+    "months": 1,
+    "notified_soon": false,
+    "reclaimed": false
   },
   "6229897436": {
     "plan_id": "standard",
