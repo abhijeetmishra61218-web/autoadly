@@ -11,7 +11,6 @@ from aiogram.types import CallbackQuery, Message
 import raw_api
 import content_store as store
 import payments_engine as pe
-import flow_state
 
 router = Router()
 
@@ -20,7 +19,7 @@ COUNTDOWN_TICK = 1
 SCAN_TICK = 5
 SCAN_MAX_TICKS = 180  # 5s x 180 = 15 min, matches the payment window
 
-ORDERS = flow_state.FlowBucket("payment_order")
+ORDERS = {}
 COUNTDOWN_TASKS = {}
 SCAN_TASKS = {}
 

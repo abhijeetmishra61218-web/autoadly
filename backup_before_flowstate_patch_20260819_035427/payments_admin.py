@@ -8,11 +8,10 @@ from aiogram.types import CallbackQuery, Message
 import raw_api
 import content_store as store
 import payments_engine as pe
-import flow_state
 
 router = Router()
 
-PAY_PENDING = flow_state.FlowBucket("pay_admin_edit")
+PAY_PENDING = {}
 
 def _admin_home_rows():
     cryptos = pe.all_cryptos()

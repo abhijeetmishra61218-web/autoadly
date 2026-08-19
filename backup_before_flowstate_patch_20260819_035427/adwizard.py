@@ -11,11 +11,10 @@ import raw_api
 import content_store as store
 import database as db
 import engine
-import flow_state
 
 router = Router()
 
-WIZARD_PENDING = flow_state.FlowBucket("ad_wizard")
+WIZARD_PENDING = {}
 
 CATEGORIES = ["Telegram", "Discord", "Instagram", "Facebook", "WhatsApp", "TikTok", "X (Twitter)", "YouTube", "Exchange", "Others"]
 

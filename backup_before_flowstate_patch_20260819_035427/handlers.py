@@ -8,12 +8,11 @@ import join_engine
 import raw_api
 import content_store as store
 from config import OWNER_USERNAME
-import flow_state
 
 router = Router()
 
 # in-memory pending-edit state per admin user_id: {user_id: {"action": "edit_welcome_text"}}
-PENDING = flow_state.FlowBucket("admin_content_edit")
+PENDING = {}
 
 def _fmt_welcome(user):
     settings = store.load_settings()

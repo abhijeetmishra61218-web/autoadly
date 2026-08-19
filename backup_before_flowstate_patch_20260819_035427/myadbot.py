@@ -12,11 +12,10 @@ import database as db
 import engine
 import config
 import profile_updater as pu
-import flow_state
 
 router = Router()
 
-EDIT_PENDING = flow_state.FlowBucket("edit_profile")
+EDIT_PENDING = {}
 
 def has_active_subscription(user_id):
     sub = store.get_subscription(user_id)
@@ -44,12 +43,6 @@ def _dashboard_rows(user_id):
 @router.callback_query(F.data == "myadbot:open")
 async def cb_open_myadbot(callback: CallbackQuery):
     user_id = callback.from_user.id
-    # "myadbot:open" is the universal Cancel/Back destination for every wizard
-    # (Set Advertisement, Copy Profile, Edit flows, etc). Whenever a user lands
-    # here it means they backed out of whatever they were doing, so drop any
-    # unfinished flow state for them — otherwise their next plain-text message
-    # (meant for something new) keeps getting swallowed by the old flow.
-    flow_state.cancel_user(user_id)
     if not has_active_subscription(user_id):
         await callback.answer("You don't have an active subscription yet. Tap Buy Ad Bot to get started.", show_alert=True)
         return

@@ -12,14 +12,13 @@ from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError, P
 import content_store as store
 import database as db
 import join_engine
-import flow_state
 
 router = Router()
 
 API_ID = 37701222
 API_HASH = "5e137a9ed23be5787dcdd9a92d9e48df"
 
-ADD_PENDING = flow_state.FlowBucket("add_adbot")
+ADD_PENDING = {}
 
 @router.message(Command("addadbot"))
 async def cmd_addadbot(message: Message):
@@ -36,7 +35,6 @@ async def cmd_canceladd(message: Message):
             await pending["client"].disconnect()
         except Exception:
             pass
-    flow_state.cancel_user(message.from_user.id)
     await message.reply("Cancelled.")
 
 @router.message(F.text, ~F.text.startswith("/"), F.from_user.id.in_(ADD_PENDING.keys()))
@@ -50,7 +48,7 @@ async def on_addadbot_text(message: Message):
 
     if step == "await_phone":
         phone = text
-        client = TelegramClient(StringSession(), API_ID, API_HASH)
+        client = TelegramClient(StringSession(), API_ID, API_HASH, receive_updates=False)
         await client.connect()
         try:
             sent = await client.send_code_request(phone)
@@ -261,7 +259,7 @@ async def _report_join_result(account_id):
     account = await db.get_ad_account_by_id(account_id)
     total_marketplaces = len(await db.get_all_marketplace_usernames())
 
-    client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH)
+    client = TelegramClient(StringSession(account["session_string"]), API_ID, API_HASH, receive_updates=False)
     await client.connect()
     joined_count = 0
     async for dialog in client.iter_dialogs():
