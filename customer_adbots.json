@@ -16,7 +16,7 @@
     },
     {
       "name": "AutoAdlyAds",
-      "ad_account_id": 4,
+      "ad_account_id": null,
       "bio": "Premium Accounts & SM Expert | Services: @GetMyServices | @AutoAdlyBot",
       "photo_file_id": null,
       "cached_photo_path": "cached_slot_photos/7530034609_1.jpg"
@@ -100,7 +100,7 @@
   "7669578010": [
     {
       "name": "Adbot #1",
-      "ad_account_id": null,
+      "ad_account_id": 21,
       "bio": null,
       "photo_file_id": null
     }
@@ -108,7 +108,7 @@
   "6870438833": [
     {
       "name": "Eastside rbt big pump",
-      "ad_account_id": 21,
+      "ad_account_id": null,
       "bio": "Go follow me on sound cloud or YouTube for gass music 🔥🔥🔥",
       "photo_file_id": null
     }
