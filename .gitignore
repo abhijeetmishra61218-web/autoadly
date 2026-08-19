@@ -1,2 +1,13 @@
 
 crash_log.txt
+_old_backups_archive/
+backup_before_*/
+backup_2026*/
+_backups/
+deploy_bundle*/
+*.zip
+__pycache__/
+*.pyc
+*.session
+.git_token
+config.py

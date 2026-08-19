@@ -20,9 +20,44 @@ COUNTDOWN_TICK = 1
 SCAN_TICK = 5
 SCAN_MAX_TICKS = 180  # 5s x 180 = 15 min, matches the payment window
 
-ORDERS = flow_state.FlowBucket("payment_order")
 COUNTDOWN_TASKS = {}
 SCAN_TASKS = {}
+
+def _order_evicted(user_id, old_order):
+    """Called by flow_state when some other flow (ad wizard, account
+    setup, admin edit, etc.) takes over this same user while they had a
+    payment order open. Without this, the order used to vanish from
+    ORDERS with the countdown/scan tasks left dangling and the customer
+    getting total silence if they later pasted their hash. Now: cancel
+    the leftover tasks, and if they were actually mid-payment, tell them
+    plainly instead of leaving them hanging."""
+    _cancel(COUNTDOWN_TASKS, user_id)
+    _cancel(SCAN_TASKS, user_id)
+    if not old_order or old_order.get("state") != "await_payment":
+        return None
+    chat_id = old_order.get("chat_id")
+    msg_id = old_order.get("msg_id")
+
+    async def _notify():
+        try:
+            if chat_id and msg_id:
+                await raw_api.delete_message(chat_id, msg_id)
+        except Exception:
+            pass
+        try:
+            if chat_id:
+                await raw_api.send_message(
+                    chat_id,
+                    "Your payment session was interrupted because another action was started. "
+                    "No charge was made — please tap Buy Ad Bot again to restart your order.",
+                    [],
+                )
+        except Exception as e:
+            print(f"[payments_flow] evict notify failed for user {user_id}: {e}")
+
+    return _notify()
+
+ORDERS = flow_state.FlowBucket("payment_order", on_evict=_order_evicted)
 
 CRYPTO_DISPLAY_ORDER = ["btc", "eth", "ltc", "sol", "usdt_trc20", "usdt_bep20", "usdc_erc20", "usdc_sol"]
 
