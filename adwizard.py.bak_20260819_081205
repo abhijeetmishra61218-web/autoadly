@@ -42,28 +42,11 @@ async def _resolve_source_chat(client, username, internal_id):
         entity = await client.get_entity(username)
     return utils.get_peer_id(entity)
 
-def _has_real_adbot(adbots):
-    """A customer's slot list can be non-empty while every slot is an empty,
-    released placeholder (ad_account_id None) — e.g. right after their plan
-    expired and free_customer_slots() cleared the accounts but kept the
-    slots so a resubscribe reuses the same name/bio/photo. `if not adbots`
-    alone doesn't catch that; check for at least one slot with a real
-    account attached."""
-    return any(a.get("ad_account_id") is not None for a in adbots)
-
-def _subscription_active(user_id):
-    import time as _time
-    sub = store.get_subscription(user_id)
-    return bool(sub) and sub.get("expiry", 0) > _time.time()
-
 @router.callback_query(F.data == "myad:set_ad")
 async def cb_set_ad_start(callback: CallbackQuery):
     user_id = callback.from_user.id
-    if not _subscription_active(user_id):
-        await callback.answer("Your subscription has expired. Tap Buy Ad Bot to renew and get set up again.", show_alert=True)
-        return
     adbots = store.get_customer_adbots(user_id)
-    if not _has_real_adbot(adbots):
+    if not adbots:
         await callback.answer("You don't have an Ad Bot Account yet.", show_alert=True)
         return
     WIZARD_PENDING[user_id] = {"step": "await_link"}
@@ -77,11 +60,8 @@ async def cb_set_ad_start(callback: CallbackQuery):
 @router.message(Command("set"))
 async def cmd_set_ad_start(message: Message):
     user_id = message.from_user.id
-    if not _subscription_active(user_id):
-        await message.reply("Your subscription has expired. Tap Buy Ad Bot to renew and get set up again.")
-        return
     adbots = store.get_customer_adbots(user_id)
-    if not _has_real_adbot(adbots):
+    if not adbots:
         await message.reply("You don't have an Ad Bot Account yet.")
         return
     WIZARD_PENDING[user_id] = {"step": "await_link"}
@@ -174,13 +154,7 @@ async def on_wizard_text(message: Message):
 
 async def _show_account_picker(chat_id, msg_id, user_id):
     adbots = store.get_customer_adbots(user_id)
-    # Only list slots that actually have an account attached — an expired/
-    # released slot keeps its name for reuse later, but must never render
-    # as a pickable option since there's nothing behind it.
-    rows = [
-        [{"text": store.slot_display_name(bot, i), "callback_data": f"adwiz:acct:{i}"}]
-        for i, bot in enumerate(adbots) if bot.get("ad_account_id") is not None
-    ]
+    rows = [[{"text": store.slot_display_name(bot, i), "callback_data": f"adwiz:acct:{i}"}] for i, bot in enumerate(adbots)]
     rows.append([{"text": "Cancel", "callback_data": "myadbot:open"}])
     text = "Which Ad Bot Account do you want to use?"
     if msg_id:
@@ -197,8 +171,8 @@ async def cb_pick_account(callback: CallbackQuery):
         return
     idx = int(callback.data.split(":", 2)[2])
     adbots = store.get_customer_adbots(user_id)
-    if idx >= len(adbots) or adbots[idx].get("ad_account_id") is None:
-        await callback.answer("That Ad Bot Account isn't available anymore. Tap Buy Ad Bot to set up again.", show_alert=True)
+    if idx >= len(adbots):
+        await callback.answer("Not found.", show_alert=True)
         return
     bot = adbots[idx]
     pending["ad_account_id"] = bot["ad_account_id"]
