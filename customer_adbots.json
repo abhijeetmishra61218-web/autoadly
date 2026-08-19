@@ -75,7 +75,7 @@
   "8897259158": [
     {
       "name": "Adbot #1",
-      "ad_account_id": 20,
+      "ad_account_id": null,
       "bio": null,
       "photo_file_id": null
     }
@@ -108,7 +108,7 @@
   "6870438833": [
     {
       "name": "Eastside rbt big pump",
-      "ad_account_id": null,
+      "ad_account_id": 21,
       "bio": "Go follow me on sound cloud or YouTube for gass music 🔥🔥🔥",
       "photo_file_id": null
     }
