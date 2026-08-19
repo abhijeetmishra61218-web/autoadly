@@ -157,17 +157,7 @@ async def cb_pick_crypto(callback: CallbackQuery):
     await callback.answer()
 
     COUNTDOWN_TASKS[user_id] = asyncio.create_task(_countdown(user_id, order["token"]))
-    # NOTE: background auto-scan intentionally NOT started here anymore.
-    # It used to silently match ANY transaction landing on the shared address
-    # (from any customer, for any order) purely by amount, which could steal
-    # a different customer's real, valid transaction hash before they pasted
-    # it themselves -> falsely "already used". Orders are now completed only
-    # through the customer's own manual hash paste in on_hash_text(), which
-    # already does the correct check order: hash not used -> tx really
-    # happened (amount + receiver address match) -> tx not older than the
-    # payment window -> mark hash used. _auto_scan() is left defined below,
-    # unused, in case a safer, per-order-tagged version is built later.
-    # SCAN_TASKS[user_id] = asyncio.create_task(_auto_scan(user_id, order["token"]))
+    SCAN_TASKS[user_id] = asyncio.create_task(_auto_scan(user_id, order["token"]))
 
 @router.callback_query(F.data == "pay:cancel")
 async def cb_cancel(callback: CallbackQuery):
