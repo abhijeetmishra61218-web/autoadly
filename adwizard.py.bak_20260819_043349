@@ -3,7 +3,6 @@ AutoAdly - Set Advertisement wizard
 """
 
 import re
-import logging
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
@@ -13,8 +12,6 @@ import content_store as store
 import database as db
 import engine
 import flow_state
-
-logger = logging.getLogger(__name__)
 
 router = Router()
 
@@ -279,23 +276,6 @@ async def cb_pick_list(callback: CallbackQuery):
         return
 
     list_id = int(choice)
-
-    # TEMP OVERRIDE (2026-08-19): "Only High Quality Groups", "Only High Quality
-    # Forums" and "Only OFM Groups & Forums" presets are empty shells with no
-    # marketplaces linked to them. Picking one silently creates an ad that never
-    # posts (engine.run_advertisement_loop sees an empty list and just returns).
-    # Until those lists are populated for real, force every preset-list pick to
-    # land on "All Groups & Forums" (which is fully populated) so no new client
-    # can hit the same silent-failure. This does NOT affect the "custom" /
-    # folder-link flow, which builds its own list from real groups.
-    safe_list_id = await db.get_or_create_list("All Groups & Forums")
-    if list_id != safe_list_id:
-        logger.warning(
-            f"adwizard: overriding list pick {list_id} -> safe list {safe_list_id} "
-            f"for user {user_id} (empty-preset-list guard)"
-        )
-    list_id = safe_list_id
-
     try:
         await _activate_ad(callback.message.chat.id, callback.message.message_id, user_id, pending, list_id)
     finally:

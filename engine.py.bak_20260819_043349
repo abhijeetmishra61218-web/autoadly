@@ -253,25 +253,17 @@ async def _run_with_restart(ad):
     """Wraps run_advertisement_loop so ANY unexpected error (connection drop, etc.)
        restarts the loop after a short delay instead of silently killing the ad forever."""
     ad_id = ad["id"]
-    try:
-        while True:
-            try:
-                await run_advertisement_loop(ad)
-                break  # loop exited cleanly (ad stopped/replaced) — do not restart
-            except Exception as e:
-                logger.info(f"Advertisement id={ad_id} crashed unexpectedly: {e} — restarting in 15s")
-                await asyncio.sleep(15)
-                fresh = await db.get_active_advertisements()
-                ad = next((a for a in fresh if a["id"] == ad_id), None)
-                if not ad:
-                    break  # ad no longer active, stop retrying
-    finally:
-        # Always release the id, including the "empty marketplace list" clean-exit
-        # case in run_advertisement_loop. Otherwise, if the DB's marketplace_list_id
-        # for this ad is fixed later while status stays 'active', watch_for_new_ads()
-        # will never retry it (it only starts ids not already in _running_ad_ids) —
-        # the ad would need a full bot restart to actually start posting again.
-        _running_ad_ids.discard(ad_id)
+    while True:
+        try:
+            await run_advertisement_loop(ad)
+            break  # loop exited cleanly (ad stopped/replaced) — do not restart
+        except Exception as e:
+            logger.info(f"Advertisement id={ad_id} crashed unexpectedly: {e} — restarting in 15s")
+            await asyncio.sleep(15)
+            fresh = await db.get_active_advertisements()
+            ad = next((a for a in fresh if a["id"] == ad_id), None)
+            if not ad:
+                break  # ad no longer active, stop retrying
 
 async def watch_for_new_ads():
     """Polls the database for newly created active ads and spawns tasks for them,
