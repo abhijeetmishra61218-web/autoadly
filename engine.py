@@ -2,6 +2,7 @@
 import asyncio
 import logging
 import random
+import time
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.tl.functions.messages import ForwardMessagesRequest
@@ -114,12 +115,25 @@ async def post_to_marketplace(client: TelegramClient, ad, marketplace):
     link, _msg_id, _target = await _post_to_marketplace_core(client, ad, marketplace)
     return link
 
+# marketplace_id -> unix timestamp of the last successful post into it, from ANY
+# ad/account. Confirmed via DB: some marketplaces had 15-18 different ads
+# independently targeting them, each on its own correct interval, but the GROUP
+# still saw a post from a different one of our accounts every few seconds. This
+# is a process-wide cooldown across all ads/accounts, checked at the single
+# choke point both the main loop and low_quality_stagger funnel through.
+_last_global_post = {}
+MIN_GLOBAL_MARKETPLACE_GAP_SECONDS = 90
+
 async def _post_to_marketplace_core(client: TelegramClient, ad, marketplace):
     """Same as post_to_marketplace, but also returns (msg_id, target) so callers
        that need to run their own visibility check (e.g. low_quality_engine.py)
        can do so without duplicating the posting logic. post_to_marketplace()
        above is just a thin wrapper kept 100% behavior-identical for the
        existing caller in run_advertisement_loop."""
+    marketplace_id = marketplace["id"]
+    last_post = _last_global_post.get(marketplace_id)
+    if last_post is not None and (time.time() - last_post) < MIN_GLOBAL_MARKETPLACE_GAP_SECONDS:
+        return None, None, None
     try:
         target = marketplace["chat_id"]
         source_username = ad["source_username"] if "source_username" in ad.keys() else None
@@ -143,6 +157,7 @@ async def _post_to_marketplace_core(client: TelegramClient, ad, marketplace):
             new_msg_id = _extract_new_message_id(result)
             if new_msg_id and await db.should_check_visibility(marketplace["id"]):
                 asyncio.create_task(_check_visibility_later(client, marketplace, new_msg_id, target))
+            _last_global_post[marketplace_id] = time.time()
             return _build_message_link(marketplace, new_msg_id), new_msg_id, target
 
         candidates = await db.get_ranked_topics(marketplace["id"], ad["category"])
@@ -163,6 +178,7 @@ async def _post_to_marketplace_core(client: TelegramClient, ad, marketplace):
                 new_msg_id = _extract_new_message_id(result)
                 if new_msg_id and await db.should_check_visibility(marketplace["id"]):
                     asyncio.create_task(_check_visibility_later(client, marketplace, new_msg_id, target))
+                _last_global_post[marketplace_id] = time.time()
                 return _build_message_link(marketplace, new_msg_id), new_msg_id, target
             except (FloodWaitError, ChatWriteForbiddenError, UserBannedInChannelError):
                 raise

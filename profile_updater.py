@@ -10,7 +10,7 @@ import io
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.functions.account import UpdateProfileRequest, UpdateUsernameRequest, CheckUsernameRequest
 from telethon.tl.functions.photos import UploadProfilePhotoRequest
-from telethon.errors import UsernameOccupiedError, UsernameInvalidError
+from telethon.errors import UsernameOccupiedError, UsernameInvalidError, UsernameNotModifiedError
 
 RANDOM_NAME_WORDS = ["Nova", "Orbit", "Vertex", "Pulse", "Zenith", "Drift", "Ember", "Halo", "Quartz", "Blaze"]
 
@@ -66,6 +66,11 @@ async def update_username(client, desired_username):
         try:
             await client(CheckUsernameRequest(candidate))
             await client(UpdateUsernameRequest(candidate))
+            return candidate
+        except UsernameNotModifiedError:
+            # Account's current username already equals this candidate (e.g. a
+            # released account being reassigned to the same buyer again, whose
+            # username is deterministic from user_id). Not a failure.
             return candidate
         except (UsernameOccupiedError, UsernameInvalidError):
             attempt += 1
