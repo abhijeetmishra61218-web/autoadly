@@ -11,3 +11,5 @@ __pycache__/
 *.session
 .git_token
 config.py
+
+crash_log.old.txt
