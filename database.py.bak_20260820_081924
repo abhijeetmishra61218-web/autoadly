@@ -79,27 +79,6 @@ CREATE TABLE IF NOT EXISTS post_logs (
     message_link TEXT
 );
 
--- Permanent, never-pruned running totals. post_logs itself only ever
--- holds a short recent window (see backup_system.py's 24h retention)
--- for operational/debugging use, so raw post_logs alone cannot answer
--- "today / last 7 days / all-time" style questions honestly. These two
--- tables are the actual source of truth for that: one row per
--- (day, marketplace) / (day, ad_account) pair, incremented in
--- log_success(), never deleted.
-CREATE TABLE IF NOT EXISTS daily_marketplace_stats (
-    day TEXT,
-    marketplace_id INTEGER,
-    post_count INTEGER DEFAULT 0,
-    PRIMARY KEY (day, marketplace_id)
-);
-
-CREATE TABLE IF NOT EXISTS daily_account_stats (
-    day TEXT,
-    ad_account_id INTEGER,
-    post_count INTEGER DEFAULT 0,
-    PRIMARY KEY (day, ad_account_id)
-);
-
 -- Staggered sweet-spot scheduler state for low-quality marketplaces (see
 -- low_quality_stagger.py). One row per (ad, marketplace) pair currently
 -- being tested or already graduated to a fixed posting interval.
@@ -234,22 +213,10 @@ async def get_forum_topic(marketplace_id: int, category: str):
         return row["topic_id"] if row else None
 
 async def log_success(ad_account_id: int, marketplace_id: int, message_link: str):
-    ts = time.time()
-    day = time.strftime("%Y-%m-%d", time.gmtime(ts))
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "INSERT INTO post_logs (ad_account_id, marketplace_id, posted_at, message_link) VALUES (?, ?, ?, ?)",
-            (ad_account_id, marketplace_id, ts, message_link)
-        )
-        await db.execute(
-            "INSERT INTO daily_marketplace_stats (day, marketplace_id, post_count) VALUES (?, ?, 1) "
-            "ON CONFLICT(day, marketplace_id) DO UPDATE SET post_count = post_count + 1",
-            (day, marketplace_id)
-        )
-        await db.execute(
-            "INSERT INTO daily_account_stats (day, ad_account_id, post_count) VALUES (?, ?, 1) "
-            "ON CONFLICT(day, ad_account_id) DO UPDATE SET post_count = post_count + 1",
-            (day, ad_account_id)
+            (ad_account_id, marketplace_id, time.time(), message_link)
         )
         await db.commit()
 
@@ -289,15 +256,6 @@ async def mark_alert_sent(ad_account_id: int):
         await db.commit()
 
 async def cleanup_old_logs():
-    """NOTE: intentionally no longer called anywhere (see engine.py's
-    cleanup_loop). This ran every 60s with a 900s cutoff, pruning
-    post_logs down to a rolling ~15-minute window — which completely
-    overrode backup_system.py's intended 24h retention and made
-    /teststats-style "today/week/all-time" queries meaningless (they were
-    all reading the same ~15 minutes of data). Real totals now live in
-    daily_marketplace_stats / daily_account_stats instead, which are never
-    pruned. Left defined, unused, in case a short debug-window prune is
-    ever wanted again deliberately."""
     cutoff = time.time() - 900
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM post_logs WHERE posted_at < ?", (cutoff,))

@@ -666,44 +666,35 @@ async def cmd_test_stats(message: Message):
     look like: total ads posted today / last 7 days / all-time, and across
     how many distinct marketplaces. Nothing here is shown to customers or
     posted anywhere automatically — this just renders the numbers so you
-    can see what they'd look like before deciding to make it public.
-
-    Reads from daily_marketplace_stats, not post_logs — post_logs only
-    ever holds a short recent window (see backup_system.py), so it can't
-    honestly answer "today/week/all-time" on its own."""
+    can see what they'd look like before deciding to make it public."""
     if not _is_owner(message.from_user.id):
         return
 
-    today_str = time.strftime("%Y-%m-%d", time.gmtime(time.time()))
-    week_days = [time.strftime("%Y-%m-%d", time.gmtime(time.time() - i * 86400)) for i in range(7)]
-    placeholders = ",".join("?" for _ in week_days)
+    now = time.time()
+    day_start = now - (now % 86400)
+    week_start = now - 7 * 86400
 
     import aiosqlite
     async with aiosqlite.connect(db.DB_PATH) as conn:
         conn.row_factory = aiosqlite.Row
         cur = await conn.execute(
-            "SELECT COALESCE(SUM(post_count),0) AS c, COUNT(DISTINCT marketplace_id) AS m "
-            "FROM daily_marketplace_stats WHERE day = ?",
-            (today_str,),
+            "SELECT COUNT(*) AS c, COUNT(DISTINCT marketplace_id) AS m FROM post_logs WHERE posted_at >= ?",
+            (day_start,),
         )
         today = await cur.fetchone()
         cur = await conn.execute(
-            "SELECT COALESCE(SUM(post_count),0) AS c, COUNT(DISTINCT marketplace_id) AS m "
-            f"FROM daily_marketplace_stats WHERE day IN ({placeholders})",
-            week_days,
+            "SELECT COUNT(*) AS c, COUNT(DISTINCT marketplace_id) AS m FROM post_logs WHERE posted_at >= ?",
+            (week_start,),
         )
         week = await cur.fetchone()
-        cur = await conn.execute(
-            "SELECT COALESCE(SUM(post_count),0) AS c, COUNT(DISTINCT marketplace_id) AS m "
-            "FROM daily_marketplace_stats"
-        )
+        cur = await conn.execute("SELECT COUNT(*) AS c FROM post_logs")
         alltime = await cur.fetchone()
 
     await message.reply(
         "<b>📊 AutoAdly Stats — preview (owner-only test, not public yet)</b>\n\n"
         f"Today: <b>{today['c']}</b> ads posted across <b>{today['m']}</b> marketplaces\n"
         f"Last 7 days: <b>{week['c']}</b> ads posted across <b>{week['m']}</b> marketplaces\n"
-        f"All-time: <b>{alltime['c']}</b> ads posted across <b>{alltime['m']}</b> marketplaces",
+        f"All-time: <b>{alltime['c']}</b> ads posted",
         parse_mode="HTML",
     )
 
@@ -713,23 +704,18 @@ async def cmd_test_leaderboard(message: Message):
     leaderboard by post volume over the last 7 days. No usernames or any
     identifying info shown, just 'Advertiser #N' + post count, exactly what
     a public trust-building post would look like. Nothing here is shown to
-    customers or posted anywhere automatically.
-
-    Reads from daily_account_stats, not post_logs, for the same reason as
-    /teststats above — post_logs doesn't retain a real 7-day window."""
+    customers or posted anywhere automatically."""
     if not _is_owner(message.from_user.id):
         return
 
-    week_days = [time.strftime("%Y-%m-%d", time.gmtime(time.time() - i * 86400)) for i in range(7)]
-    placeholders = ",".join("?" for _ in week_days)
+    since = time.time() - 7 * 86400
 
     import aiosqlite
     async with aiosqlite.connect(db.DB_PATH) as conn:
         conn.row_factory = aiosqlite.Row
         cur = await conn.execute(
-            "SELECT ad_account_id, SUM(post_count) AS c FROM daily_account_stats "
-            f"WHERE day IN ({placeholders}) GROUP BY ad_account_id",
-            week_days,
+            "SELECT ad_account_id, COUNT(*) AS c FROM post_logs WHERE posted_at >= ? GROUP BY ad_account_id",
+            (since,),
         )
         rows = await cur.fetchall()
 

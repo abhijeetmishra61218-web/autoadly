@@ -299,14 +299,7 @@ async def start_engine():
 
     async def cleanup_loop():
         while True:
-            # cleanup_old_logs() used to run here every 60s with a 900s
-            # cutoff, pruning post_logs to a rolling ~15-minute window —
-            # that fought backup_system.py's 24h retention and made any
-            # "today/week/all-time" stat meaningless. Real running totals
-            # now come from daily_marketplace_stats/daily_account_stats
-            # instead (see database.log_success), which are never pruned,
-            # so this loop has nothing left to do. Left in place, inert,
-            # in case a deliberate short-window prune is wanted later.
+            await db.cleanup_old_logs()
             await asyncio.sleep(60)
 
     tasks.append(asyncio.create_task(cleanup_loop()))
