@@ -14,7 +14,12 @@ API_HASH = "5e137a9ed23be5787dcdd9a92d9e48df"
 POST_INTERVAL_CYCLE = [60, 120, 180, 240]  # rotates 1min -> 2min -> 3min -> 4min -> repeat, per account,
                                             # so posting timing looks less robotic/synchronized to Telegram's spam detection
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logging.getLogger("telethon").setLevel(logging.WARNING)
 logger = logging.getLogger("ad_engine")
 
 _clients = {}
