@@ -160,21 +160,6 @@ def free_customer_slots(user_id):
     data[key] = slots
     save_customer_adbots(data)
 
-def unassign_account_everywhere(ad_account_id):
-    """Scans every customer's slots and clears any slot currently holding
-    this account_id (used by /force to pull an account off whoever has it
-    before handing it to someone else). Returns (uid, slot_name) of the
-    previous owner if one was found, else None."""
-    data = load_customer_adbots()
-    for uid_str, slots in data.items():
-        for i, slot in enumerate(slots):
-            if slot.get("ad_account_id") == ad_account_id:
-                prev_owner = (uid_str, slot_display_name(slot, i))
-                slot["ad_account_id"] = None
-                save_customer_adbots(data)
-                return prev_owner
-    return None
-
 def save_action_emojis(data):
     _save(ACTION_EMOJI_FILE, data)
 
