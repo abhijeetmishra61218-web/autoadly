@@ -280,6 +280,25 @@ async def get_all_account_activity():
         cursor = await db.execute("SELECT * FROM account_activity")
         return await cursor.fetchall()
 
+async def get_account_activity(ad_account_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT * FROM account_activity WHERE ad_account_id = ?", (ad_account_id,))
+        return await cursor.fetchone()
+
+async def get_recent_post_logs(ad_account_id: int, limit: int = 20):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("""
+            SELECT p.posted_at, p.message_link, m.chat_username
+            FROM post_logs p
+            JOIN marketplaces m ON m.id = p.marketplace_id
+            WHERE p.ad_account_id = ?
+            ORDER BY p.posted_at DESC
+            LIMIT ?
+        """, (ad_account_id, limit))
+        return await cursor.fetchall()
+
 async def mark_alert_sent(ad_account_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(

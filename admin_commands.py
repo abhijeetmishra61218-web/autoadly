@@ -257,6 +257,166 @@ async def _do_change(message_or_callback_msg, target_uid, idx):
         await message_or_callback_msg.reply("No free accounts right now — queued. It will be assigned automatically and the customer notified the moment /addadbot adds one.")
 
 
+def _fmt_ts(ts):
+    if not ts:
+        return "never"
+    return time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(ts))
+
+def _fmt_ago(ts):
+    if not ts:
+        return "never"
+    seconds = time.time() - ts
+    if seconds < 60:
+        return f"{int(seconds)}s ago"
+    if seconds < 3600:
+        return f"{int(seconds // 60)}m ago"
+    if seconds < 86400:
+        return f"{int(seconds // 3600)}h ago"
+    return f"{int(seconds // 86400)}d ago"
+
+async def _resolve_target_and_adbots(message, parts, usage):
+    if len(parts) != 2 or not parts[1].startswith("@"):
+        await message.reply(usage)
+        return None, None
+    username = parts[1].lstrip("@")
+    target_uid = store.get_uid_by_username(username)
+    if not target_uid:
+        await message.reply(f"@{username} hasn't started the bot yet.")
+        return None, None
+    adbots = store.get_customer_adbots(target_uid)
+    if not adbots:
+        await message.reply(f"@{username} has no Ad Bot Accounts.")
+        return None, None
+    return target_uid, adbots
+
+async def _pick_or_prompt(message, target_uid, adbots, username, prefix, run_fn):
+    """Runs run_fn directly if there's only one account; otherwise shows a
+       button per account (same selection pattern as /change)."""
+    if len(adbots) == 1:
+        await run_fn(message, target_uid, 0)
+        return
+    rows = [[{"text": store.slot_display_name(bot, i), "callback_data": f"{prefix}:{target_uid}:{i}"}] for i, bot in enumerate(adbots)]
+    await raw_api.send_message(message.chat.id, f"Which of @{username}'s accounts?", rows)
+
+
+@router.message(Command("alog"))
+async def cmd_alog(message: Message):
+    if not store.is_admin(message.from_user.id):
+        return
+    parts = message.text.split()
+    target_uid, adbots = await _resolve_target_and_adbots(message, parts, "Usage: /alog @username")
+    if target_uid is None:
+        return
+    await _pick_or_prompt(message, target_uid, adbots, parts[1].lstrip("@"), "alogpick", _do_alog)
+
+@router.callback_query(F.data.startswith("alogpick:"))
+async def cb_alog_pick(callback: CallbackQuery):
+    if not store.is_admin(callback.from_user.id):
+        await callback.answer("Admins only.", show_alert=True)
+        return
+    _, uid_str, idx_str = callback.data.split(":")
+    await _do_alog(callback.message, int(uid_str), int(idx_str))
+    await callback.answer()
+
+async def _do_alog(message_or_callback_msg, target_uid, idx):
+    adbots = store.get_customer_adbots(target_uid)
+    if idx >= len(adbots):
+        await message_or_callback_msg.reply("Account not found.")
+        return
+    bot = adbots[idx]
+    account_id = bot.get("ad_account_id")
+    if not account_id:
+        await message_or_callback_msg.reply(f"{store.slot_display_name(bot, idx)} — Unassigned, nothing to show.")
+        return
+
+    account = await db.get_ad_account_by_id(account_id)
+    phone = store.normalize_phone(account["phone"]) if account else "unknown"
+    logs = await db.get_recent_post_logs(account_id, limit=20)
+
+    lines = [
+        f"<b>Recent posts — {store.slot_display_name(bot, idx)} ({phone})</b>",
+        "",
+    ]
+    if not logs:
+        lines.append("No posts logged yet for this account.")
+    else:
+        for row in logs:
+            lines.append(f"{_fmt_ts(row['posted_at'])} — {row['chat_username']} — {row['message_link']}")
+
+    for chunk in _chunk_lines(lines):
+        await message_or_callback_msg.reply(chunk, parse_mode="HTML")
+
+
+@router.message(Command("alive"))
+async def cmd_alive(message: Message):
+    if not store.is_admin(message.from_user.id):
+        return
+    parts = message.text.split()
+    target_uid, adbots = await _resolve_target_and_adbots(message, parts, "Usage: /alive @username")
+    if target_uid is None:
+        return
+    await _pick_or_prompt(message, target_uid, adbots, parts[1].lstrip("@"), "alivepick", _do_alive)
+
+@router.callback_query(F.data.startswith("alivepick:"))
+async def cb_alive_pick(callback: CallbackQuery):
+    if not store.is_admin(callback.from_user.id):
+        await callback.answer("Admins only.", show_alert=True)
+        return
+    _, uid_str, idx_str = callback.data.split(":")
+    await _do_alive(callback.message, int(uid_str), int(idx_str))
+    await callback.answer()
+
+async def _do_alive(message_or_callback_msg, target_uid, idx):
+    adbots = store.get_customer_adbots(target_uid)
+    if idx >= len(adbots):
+        await message_or_callback_msg.reply("Account not found.")
+        return
+    bot = adbots[idx]
+    account_id = bot.get("ad_account_id")
+    if not account_id:
+        await message_or_callback_msg.reply(f"{store.slot_display_name(bot, idx)} — Unassigned.")
+        return
+
+    account = await db.get_ad_account_by_id(account_id)
+    phone = store.normalize_phone(account["phone"]) if account else "unknown"
+    ad = await db.get_active_ad_for_account(account_id)
+    activity = await db.get_account_activity(account_id)
+
+    lines = [f"<b>{store.slot_display_name(bot, idx)} ({phone})</b>", ""]
+
+    if not activity:
+        lines.append("Status: ⚪ Never started (no posting loop activity recorded).")
+    else:
+        last_success = activity["last_success_at"]
+        if last_success and (time.time() - last_success) < 900:
+            lines.append(f"Status: 🟢 Alive — last successful post {_fmt_ago(last_success)}.")
+        elif last_success:
+            lines.append(f"Status: 🔴 Stalled — last successful post {_fmt_ago(last_success)}.")
+        else:
+            lines.append("Status: 🔴 Loop started but has never posted successfully.")
+        lines.append(f"Loop started: {_fmt_ts(activity['loop_started_at'])} ({_fmt_ago(activity['loop_started_at'])})")
+        lines.append(f"Last alert sent: {_fmt_ts(activity['last_alert_at'])}")
+
+    lines.append("")
+
+    if not ad:
+        lines.append("Setted ad: none configured.")
+    else:
+        list_row = await db.get_marketplace_list_by_id(ad["marketplace_list_id"])
+        list_name = list_row["name"] if list_row else "unknown list"
+        list_marketplaces = await db.get_list_marketplaces(ad["marketplace_list_id"])
+        source = f"@{ad['source_username']}" if ad["source_username"] else f"chat_id {ad['source_chat_id']}"
+        lines.append("<b>Setted ad:</b>")
+        lines.append(f"Source: {source} (message {ad['source_message_id']})")
+        lines.append(f"Category: {ad['category']}")
+        lines.append(f"Marketplace list: {list_name} ({len(list_marketplaces)} groups)")
+        lines.append(f"Status: {ad['status']}")
+        lines.append(f"Progress: index {ad['current_index']} of {len(list_marketplaces)}")
+
+    for chunk in _chunk_lines(lines):
+        await message_or_callback_msg.reply(chunk, parse_mode="HTML")
+
+
 @router.message(Command("priority"))
 async def cmd_priority(message: Message):
     if not store.is_admin(message.from_user.id):
