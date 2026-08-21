@@ -134,6 +134,12 @@ async def _post_to_marketplace_core(client: TelegramClient, ad, marketplace):
     last_post = _last_global_post.get(marketplace_id)
     if last_post is not None and (time.time() - last_post) < MIN_GLOBAL_MARKETPLACE_GAP_SECONDS:
         return None, None, None
+    # Reserve the slot NOW, synchronously, before any await — closes a race
+    # where multiple asyncio tasks (different ad accounts, same marketplace)
+    # can all pass the check above before any of them finishes posting and
+    # updates the timestamp (confirmed via <1s gaps on heavily-shared
+    # marketplaces even with the check in place).
+    _last_global_post[marketplace_id] = time.time()
     try:
         target = marketplace["chat_id"]
         source_username = ad["source_username"] if "source_username" in ad.keys() else None
