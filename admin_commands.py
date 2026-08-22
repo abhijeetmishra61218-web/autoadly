@@ -1051,6 +1051,52 @@ async def cmd_free_accounts(message: Message):
         lines.append(f"ID {r['id']} — {r['phone']}")
     await message.reply("\n".join(lines), parse_mode="HTML")
 
+@router.message(Command("banacc"))
+async def cmd_banned_accounts(message: Message):
+    """Owner-only: lists every Ad Bot Account sitting in the 'banned' bucket —
+       accounts /change replaced, permanently parked there unless /unban'd back
+       to free. Neither /freeacc nor /occacc show these, since they're neither
+       free nor currently occupied by anyone."""
+    if not store.is_admin(message.from_user.id):
+        return
+    import aiosqlite
+    async with aiosqlite.connect(db.DB_PATH) as conn:
+        conn.row_factory = aiosqlite.Row
+        cursor = await conn.execute("SELECT id, phone FROM ad_accounts WHERE status = 'banned' ORDER BY id")
+        rows = await cursor.fetchall()
+    if not rows:
+        await message.reply("No banned Ad Bot Accounts right now.")
+        return
+    lines = [f"<b>Banned Ad Bot Accounts ({len(rows)})</b>", "", "Use /unban <id> to send one back to the free pool."]
+    for r in rows:
+        lines.append(f"ID {r['id']} — {r['phone']}")
+    await message.reply("\n".join(lines), parse_mode="HTML")
+
+@router.message(Command("unban"))
+async def cmd_unban_account(message: Message):
+    """Owner-only: /unban <account_id> — sends a banned Ad Bot Account back to
+       the free pool (e.g. it turns out it wasn't actually restricted)."""
+    if not store.is_admin(message.from_user.id):
+        return
+    parts = message.text.split()
+    if len(parts) != 2:
+        await message.reply("Usage: /unban <account_id>")
+        return
+    try:
+        account_id = int(parts[1])
+    except ValueError:
+        await message.reply("Usage: /unban <account_id> — account_id must be a number.")
+        return
+    account = await db.get_ad_account_by_id(account_id)
+    if not account:
+        await message.reply(f"No account with ID {account_id}.")
+        return
+    if account["status"] != "banned":
+        await message.reply(f"Account {account_id} isn't banned (current status: {account['status']}), nothing to do.")
+        return
+    await db.mark_ad_account_status_no_fulfill(account_id, "free")
+    await message.reply(f"Account {account_id} ({account['phone']}) is back in the free pool.")
+
 @router.message(Command("occacc"))
 async def cmd_occupied_accounts(message: Message):
     """Owner-only: lists every Ad Bot Account currently assigned to a customer, with owner + slot name."""
