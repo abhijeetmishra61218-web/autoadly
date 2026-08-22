@@ -286,7 +286,7 @@ async def _run_with_restart(ad):
                 await run_advertisement_loop(ad)
                 break  # loop exited cleanly (ad stopped/replaced) — do not restart
             except Exception as e:
-                logger.info(f"Advertisement id={ad_id} crashed unexpectedly: {e} — restarting in 15s")
+                logger.exception(f"Advertisement id={ad_id} crashed unexpectedly — restarting in 15s")
                 await asyncio.sleep(15)
                 fresh = await db.get_active_advertisements()
                 ad = next((a for a in fresh if a["id"] == ad_id), None)
