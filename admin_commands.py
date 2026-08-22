@@ -1067,25 +1067,28 @@ async def cmd_banned_accounts(message: Message):
     if not rows:
         await message.reply("No banned Ad Bot Accounts right now.")
         return
-    lines = [f"<b>Banned Ad Bot Accounts ({len(rows)})</b>", "", "Use /unban &lt;id&gt; to send one back to the free pool."]
+    lines = [f"<b>Banned Ad Bot Accounts ({len(rows)})</b>", "", "Use /unbanacc &lt;id&gt; to send one back to the free pool."]
     for r in rows:
         lines.append(f"ID {r['id']} — {r['phone']}")
     await message.reply("\n".join(lines), parse_mode="HTML")
 
-@router.message(Command("unban"))
+@router.message(Command("unbanacc"))
 async def cmd_unban_account(message: Message):
-    """Owner-only: /unban <account_id> — sends a banned Ad Bot Account back to
-       the free pool (e.g. it turns out it wasn't actually restricted)."""
+    """Owner-only: /unbanacc <account_id> — sends a banned Ad Bot Account back to
+       the free pool (e.g. it turns out it wasn't actually restricted). Named
+       distinctly from /unban (which un-bans a USER from using the bot) since
+       both existed as separate commands — they'd have silently collided under
+       the same name, with only the first-registered handler ever firing."""
     if not store.is_admin(message.from_user.id):
         return
     parts = message.text.split()
     if len(parts) != 2:
-        await message.reply("Usage: /unban <account_id>")
+        await message.reply("Usage: /unbanacc <account_id>")
         return
     try:
         account_id = int(parts[1])
     except ValueError:
-        await message.reply("Usage: /unban <account_id> — account_id must be a number.")
+        await message.reply("Usage: /unbanacc <account_id> — account_id must be a number.")
         return
     account = await db.get_ad_account_by_id(account_id)
     if not account:
