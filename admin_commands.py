@@ -245,16 +245,37 @@ async def _do_change(message_or_callback_msg, target_uid, idx):
         }
         await db.stop_advertisement(existing_ad["id"])
 
+    # Capture the OLD account's live name/bio/photo so the replacement is a true
+    # copy, not just whatever's saved on the customer's slot (which can be blank
+    # or stale). Mirrors what restriction_monitor.py's automated flow already does.
+    old_profile = {"name": store.slot_display_name(bot, idx), "bio": None, "photo_bytes": None}
+    try:
+        import io
+        old_client = await engine.get_client(old_account_id)
+        me = await old_client.get_me()
+        old_profile["bio"] = getattr(me, "about", None)
+        photo_buf = io.BytesIO()
+        downloaded = await old_client.download_profile_photo(me, file=photo_buf)
+        if downloaded:
+            photo_buf.seek(0)
+            old_profile["photo_bytes"] = photo_buf
+    except Exception as e:
+        print(f"[_do_change] could not capture old profile: {e}")
+
     await db.mark_ad_account_status_no_fulfill(old_account_id, "banned")
 
     new_account = await db.get_free_ad_account()
     if new_account:
         import myadbot
-        await myadbot.fulfill_replacement(target_uid, idx, new_account["id"], ad_config, reason="banned")
-        await message_or_callback_msg.reply("Replaced instantly with a free account. Customer notified.")
+        await myadbot.fulfill_replacement(target_uid, idx, new_account["id"], ad_config, old_profile=old_profile, reason="banned")
+        await message_or_callback_msg.reply("Replaced instantly with a free account (name/bio/photo copied, ad resumed automatically). Customer notified.")
     else:
         store.queue_pending_replacement(target_uid, idx, ad_config)
-        await message_or_callback_msg.reply("No free accounts right now — queued. It will be assigned automatically and the customer notified the moment /addadbot adds one.")
+        await message_or_callback_msg.reply(
+            "No free accounts right now — queued. It will be assigned automatically and the customer notified "
+            "the moment /addadbot adds one. Note: the live name/bio/photo copy only applies to an instant "
+            "replacement — a queued one falls back to a fresh profile since photo bytes can't be queued."
+        )
 
 
 def _fmt_ts(ts):
@@ -406,8 +427,14 @@ async def _do_alive(message_or_callback_msg, target_uid, idx):
         list_name = list_row["name"] if list_row else "unknown list"
         list_marketplaces = await db.get_list_marketplaces(ad["marketplace_list_id"])
         source = f"@{ad['source_username']}" if ad["source_username"] else f"chat_id {ad['source_chat_id']}"
+        source_link = (
+            f"https://t.me/{ad['source_username']}/{ad['source_message_id']}"
+            if ad["source_username"]
+            else f"https://t.me/c/{str(ad['source_chat_id'])[4:]}/{ad['source_message_id']}"
+        )
         lines.append("<b>Setted ad:</b>")
         lines.append(f"Source: {source} (message {ad['source_message_id']})")
+        lines.append(f"Ad link: {source_link}")
         lines.append(f"Category: {ad['category']}")
         lines.append(f"Marketplace list: {list_name} ({len(list_marketplaces)} groups)")
         lines.append(f"Status: {ad['status']}")

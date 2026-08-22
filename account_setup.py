@@ -8,6 +8,7 @@ from aiogram.filters import Command
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError, PhoneNumberInvalidError
+import asyncio
 
 import content_store as store
 import database as db
@@ -155,7 +156,25 @@ async def _finish_signin(message, user_id, client, phone, two_step_password=None
 
 async def _join_new_account_to_all_marketplaces(account_id):
     try:
-        await _do_join_new_account(account_id)
+        await asyncio.wait_for(_do_join_new_account(account_id), timeout=600)
+    except asyncio.TimeoutError:
+        # A fresh client.connect() (separate from engine.py's cached client pool)
+        # can get caught in the same connection instability seen system-wide
+        # and simply hang forever — no exception, no log line, no notification.
+        # A bare try/except only catches real exceptions, not hangs, so this
+        # needed an explicit timeout to fail loudly instead of hanging silently.
+        print(f"[account_setup] Auto-join for account {account_id} TIMED OUT after 10 minutes — "
+              f"likely a stuck/unstable connection. Account left as-is; re-run its join manually once connectivity is confirmed.")
+        admins = store.load_admins()
+        owner_id = admins.get("owner_id")
+        if owner_id:
+            import raw_api
+            await raw_api.send_message(
+                owner_id,
+                f"⚠️ Auto-join for account {account_id} timed out after 10 minutes (likely a stuck connection). "
+                f"It has not joined any marketplaces yet — check its connectivity and retry.",
+                []
+            )
     except Exception as e:
         print(f"[account_setup] Auto-join for account {account_id} failed: {e}")
 
