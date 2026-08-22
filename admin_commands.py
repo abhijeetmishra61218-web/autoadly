@@ -1067,7 +1067,7 @@ async def cmd_banned_accounts(message: Message):
     if not rows:
         await message.reply("No banned Ad Bot Accounts right now.")
         return
-    lines = [f"<b>Banned Ad Bot Accounts ({len(rows)})</b>", "", "Use /unban <id> to send one back to the free pool."]
+    lines = [f"<b>Banned Ad Bot Accounts ({len(rows)})</b>", "", "Use /unban &lt;id&gt; to send one back to the free pool."]
     for r in rows:
         lines.append(f"ID {r['id']} — {r['phone']}")
     await message.reply("\n".join(lines), parse_mode="HTML")
