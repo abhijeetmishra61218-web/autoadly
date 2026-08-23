@@ -225,6 +225,22 @@ async def cb_change_pick(callback: CallbackQuery):
     await _do_change(callback.message, int(uid_str), int(idx_str))
     await callback.answer()
 
+async def _finalize_old_account_status(old_account_id):
+    """Called right after /change has already replaced the customer's account —
+       verifies the OLD account via @SpamBot and sets its real final status
+       (restricted accounts stay 'banned'; clean ones go back to 'free' instead
+       of being falsely parked in the banned bucket forever)."""
+    import restriction_monitor as rm
+    try:
+        reply = await rm.check_via_spambot(old_account_id)
+    except Exception as e:
+        return f"(Could not verify old account {old_account_id} via @SpamBot: {e} — left as 'banned' to be safe.)"
+    if rm._spambot_indicates_restriction(reply):
+        await db.mark_ad_account_status_no_fulfill(old_account_id, "banned")
+        return f"Old account {old_account_id} confirmed restricted via @SpamBot — stays in the banned bucket."
+    await db.mark_ad_account_status_no_fulfill(old_account_id, "free")
+    return f"Old account {old_account_id} checked out clean via @SpamBot — sent back to the free pool instead of banned."
+
 async def _do_change(message_or_callback_msg, target_uid, idx):
     adbots = store.get_customer_adbots(target_uid)
     if idx >= len(adbots):
@@ -268,13 +284,15 @@ async def _do_change(message_or_callback_msg, target_uid, idx):
     if new_account:
         import myadbot
         await myadbot.fulfill_replacement(target_uid, idx, new_account["id"], ad_config, old_profile=old_profile, reason="banned")
-        await message_or_callback_msg.reply("Replaced instantly with a free account (name/bio/photo copied, ad resumed automatically). Customer notified.")
+        status_line = await _finalize_old_account_status(old_account_id)
+        await message_or_callback_msg.reply(f"Replaced instantly with a free account (name/bio/photo copied, ad resumed automatically). Customer notified.\n\n{status_line}")
     else:
         store.queue_pending_replacement(target_uid, idx, ad_config)
+        status_line = await _finalize_old_account_status(old_account_id)
         await message_or_callback_msg.reply(
             "No free accounts right now — queued. It will be assigned automatically and the customer notified "
             "the moment /addadbot adds one. Note: the live name/bio/photo copy only applies to an instant "
-            "replacement — a queued one falls back to a fresh profile since photo bytes can't be queued."
+            f"replacement — a queued one falls back to a fresh profile since photo bytes can't be queued.\n\n{status_line}"
         )
 
 

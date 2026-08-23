@@ -26,6 +26,21 @@ ADD_PENDING = flow_state.FlowBucket("add_adbot")
 async def cmd_addadbot(message: Message):
     if not store.is_admin(message.from_user.id):
         return
+    parts = message.text.split()
+    if len(parts) == 2 and parts[1].startswith("@"):
+        username = parts[1].lstrip("@")
+        target_uid = store.get_uid_by_username(username)
+        if not target_uid:
+            await message.reply(f"@{username} hasn't started the bot yet — can't reserve for them.")
+            return
+        store.set_addadbot_target(target_uid)
+        await message.reply(
+            f"Reserved — the next Ad Bot Account you add will go straight to @{username}, "
+            f"regardless of anyone else's queue position.\n\n"
+            f"Send the phone number (with country code) for the new Ad Bot Account.\n\nExample: +15551234567"
+        )
+        ADD_PENDING[message.from_user.id] = {"step": "await_phone"}
+        return
     ADD_PENDING[message.from_user.id] = {"step": "await_phone"}
     await message.reply("Send the phone number (with country code) for the new Ad Bot Account.\n\nExample: +15551234567")
 
@@ -125,6 +140,33 @@ async def _finish_signin(message, user_id, client, phone, two_step_password=None
         await db.save_two_step_password(account_id, two_step_password)
 
     import content_store as _store
+
+    reserved_uid = _store.pop_addadbot_target()
+    if reserved_uid:
+        import myadbot
+        replacement_entry = _store.get_pending_replacement_for_user(reserved_uid)
+        if replacement_entry:
+            await db.mark_ad_account_status_no_fulfill(account_id, "occupied")
+            await myadbot.fulfill_replacement(reserved_uid, replacement_entry["index"], account_id, replacement_entry["ad_config"])
+            _store.remove_pending_replacement(reserved_uid, replacement_entry["index"])
+            await message.reply(f"Ad Bot Account added (ID: {account_id}) and immediately used to fulfill the reserved replacement for user {reserved_uid}.")
+        elif _store.get_pending_account_request(reserved_uid):
+            await db.mark_ad_account_status_no_fulfill(account_id, "occupied")
+            await myadbot._assign_account(reserved_uid, None, reserved_uid, account_id, send_new=True)
+            _store.remove_pending_account_request(reserved_uid)
+            await message.reply(f"Ad Bot Account added (ID: {account_id}) and immediately assigned to the reserved customer ({reserved_uid}).")
+        else:
+            await db.mark_ad_account_status_no_fulfill(account_id, "occupied")
+            await myadbot._assign_account(reserved_uid, None, reserved_uid, account_id, send_new=True)
+            await message.reply(
+                f"Ad Bot Account added (ID: {account_id}) and immediately assigned to the reserved customer "
+                f"({reserved_uid}) — no queued request/replacement was pending, assigned directly into their next open slot."
+            )
+        await message.reply("Joining it to all existing marketplaces in the background — this may take a while.")
+        import asyncio
+        asyncio.create_task(_join_new_account_to_all_marketplaces(account_id))
+        return
+
     kind, uid, payload = _store.get_oldest_pending_fulfillment()
 
     if kind == "replacement":

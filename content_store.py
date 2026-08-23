@@ -495,6 +495,17 @@ def get_oldest_pending_replacement():
         return None, None
     return best_uid, best_entry
 
+def get_pending_replacement_for_user(user_id):
+    """Returns this specific user's own earliest queued replacement entry
+       (or None), regardless of where it sits in the overall FIFO order.
+       Used by /addadbot @username to target a specific customer's queued
+       replacement instead of always taking whoever's oldest overall."""
+    data = load_pending_replacements()
+    entries = data.get(str(user_id))
+    if not entries:
+        return None
+    return min(entries, key=lambda e: e["created_at"])
+
 def remove_pending_replacement(user_id, index=None):
     """If index is given, removes only that one slot's entry. Otherwise removes all
        entries for this user (backward-compatible with old call sites)."""
@@ -543,6 +554,23 @@ def get_prestock_profile(user_id):
 def get_master_account_id():
     s = load_settings()
     return s.get("master_account_id")
+
+def set_addadbot_target(user_id):
+    """/addadbot @username reserves the VERY NEXT Ad Bot Account added (by phone
+       number, via the normal /addadbot flow) for this specific customer,
+       overriding normal FIFO queue order entirely — 'doesn't matter who's next
+       in queue'. Single reservation slot, since it's about the next add."""
+    s = load_settings()
+    s["addadbot_target_uid"] = user_id
+    save_settings(s)
+
+def pop_addadbot_target():
+    """Reads and clears the reservation in one step, so it only ever applies to
+       the next account added, never lingers for a second one."""
+    s = load_settings()
+    uid = s.pop("addadbot_target_uid", None)
+    save_settings(s)
+    return uid
 
 def set_master_account_id(account_id):
     s = load_settings()
