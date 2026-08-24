@@ -1,10 +1,11 @@
 {
   "7859617687": [
     {
-      "name": "AutoAdly @AutoAdlyAds",
-      "ad_account_id": null,
-      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
-      "photo_file_id": null
+      "name": "MISHRA @AutoAdlyBot",
+      "ad_account_id": 12,
+      "bio": "Premium Accounts & SM Expert | Everything about me - @MrsPortal",
+      "photo_file_id": null,
+      "cached_photo_path": "cached_slot_photos/7859617687_0.jpg"
     }
   ],
   "7530034609": [
@@ -23,7 +24,7 @@
     },
     {
       "name": "AutoAdly",
-      "ad_account_id": 12,
+      "ad_account_id": null,
       "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
       "photo_file_id": null
     },
