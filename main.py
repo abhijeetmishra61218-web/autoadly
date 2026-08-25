@@ -28,6 +28,7 @@ except BlockingIOError:
     sys.exit(1)
 
 async def main():
+    print("[main] booting", flush=True)
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
     dp.message.outer_middleware(ban_middleware.BanMiddleware())
@@ -58,15 +59,17 @@ async def main():
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, _on_shutdown_signal)
+    print("[main] signal handlers registered", flush=True)
 
     async def _shutdown_watcher():
+        print("[main] shutdown watcher task started, awaiting event", flush=True)
         await shutdown_event.wait()
-        print("[main] Shutdown signal received - sending best-effort ad_bot.db backup before exit...")
+        print("[main] Shutdown signal received - sending best-effort ad_bot.db backup before exit...", flush=True)
         try:
             import backup_system as _bs
             await _bs.send_db_backup(triggered_by="shutdown (auto)")
         except Exception as e:
-            print(f"[main] Shutdown backup failed: {e}")
+            print(f"[main] Shutdown backup failed: {e}", flush=True)
         await dp.stop_polling()
 
     asyncio.create_task(_shutdown_watcher())
