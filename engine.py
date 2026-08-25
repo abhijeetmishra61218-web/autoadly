@@ -222,6 +222,9 @@ async def run_advertisement_loop(ad):
     # if filtering would empty it out entirely.
     marketplaces = [m for m in all_marketplaces if m["quality_tier"] != "low"] or all_marketplaces
 
+    banned_ids = await db.get_banned_marketplace_ids(ad["ad_account_id"])
+    marketplaces = [m for m in marketplaces if m["id"] not in banned_ids] or marketplaces
+
     index = ad["current_index"] % len(marketplaces)
     pace = _pace_counters.setdefault(ad_id, 0)
 
@@ -241,6 +244,8 @@ async def run_advertisement_loop(ad):
             # rotation without needing to wait for this ad to restart.
             all_marketplaces = await db.get_list_marketplaces(ad["marketplace_list_id"])
             marketplaces = [m for m in all_marketplaces if m["quality_tier"] != "low"] or all_marketplaces
+            banned_ids = await db.get_banned_marketplace_ids(ad["ad_account_id"])
+            marketplaces = [m for m in marketplaces if m["id"] not in banned_ids] or marketplaces
             index = index % len(marketplaces)
 
             marketplace = marketplaces[index]

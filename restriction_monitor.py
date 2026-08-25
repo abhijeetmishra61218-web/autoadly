@@ -40,7 +40,11 @@ async def _eligible_marketplaces(ad_account_id: int):
 async def record_marketplace_ban(ad_account_id: int, marketplace_id: int):
     """Called on every post failure caused by a ban/write-restriction on a
        specific marketplace. Updates the live failing snapshot and notifies the
-       owner (no auto-replace) once >=60% of eligible marketplaces are failing."""
+       owner (no auto-replace) once >=60% of eligible marketplaces are failing.
+       Also persists the ban so engine.py's posting loop can permanently skip
+       this exact (account, marketplace) pair going forward."""
+    await db.add_marketplace_ban(ad_account_id, marketplace_id)
+
     failing = _failing_marketplaces.setdefault(ad_account_id, set())
     failing.add(marketplace_id)
 

@@ -114,6 +114,13 @@ CREATE TABLE IF NOT EXISTS sweet_spot_state (
     list_id INTEGER,
     PRIMARY KEY (ad_id, marketplace_id)
 );
+
+CREATE TABLE IF NOT EXISTS account_marketplace_bans (
+    ad_account_id INTEGER,
+    marketplace_id INTEGER,
+    banned_at REAL,
+    PRIMARY KEY (ad_account_id, marketplace_id)
+);
 """
 
 async def init_db():
@@ -298,6 +305,20 @@ async def get_recent_post_logs(ad_account_id: int, limit: int = 20):
             LIMIT ?
         """, (ad_account_id, limit))
         return await cursor.fetchall()
+
+async def add_marketplace_ban(ad_account_id: int, marketplace_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT OR IGNORE INTO account_marketplace_bans (ad_account_id, marketplace_id, banned_at) VALUES (?, ?, ?)",
+            (ad_account_id, marketplace_id, time.time())
+        )
+        await db.commit()
+
+async def get_banned_marketplace_ids(ad_account_id: int) -> set:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT marketplace_id FROM account_marketplace_bans WHERE ad_account_id = ?", (ad_account_id,))
+        rows = await cursor.fetchall()
+        return {r[0] for r in rows}
 
 async def mark_alert_sent(ad_account_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
