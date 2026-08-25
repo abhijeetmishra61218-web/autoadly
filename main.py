@@ -51,28 +51,15 @@ async def main():
     asyncio.create_task(engine.start_engine())
     asyncio.create_task(account_setup.resume_unsynced_joins())
 
-    shutdown_event = asyncio.Event()
-
-    def _on_shutdown_signal():
-        shutdown_event.set()
-
-    loop = asyncio.get_running_loop()
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, _on_shutdown_signal)
-    print("[main] signal handlers registered", flush=True)
-
-    async def _shutdown_watcher():
-        print("[main] shutdown watcher task started, awaiting event", flush=True)
-        await shutdown_event.wait()
-        print("[main] Shutdown signal received - sending best-effort ad_bot.db backup before exit...", flush=True)
+    async def on_shutdown():
+        print("[main] Shutdown - sending best-effort ad_bot.db backup before exit...", flush=True)
         try:
-            import backup_system as _bs
-            await _bs.send_db_backup(triggered_by="shutdown (auto)")
+            await backup_system.send_db_backup(triggered_by="shutdown (auto)")
         except Exception as e:
             print(f"[main] Shutdown backup failed: {e}", flush=True)
-        await dp.stop_polling()
 
-    asyncio.create_task(_shutdown_watcher())
+    dp.shutdown.register(on_shutdown)
+    print("[main] shutdown hook registered", flush=True)
 
     await dp.start_polling(bot)
 
