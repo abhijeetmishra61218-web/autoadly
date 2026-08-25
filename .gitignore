@@ -13,3 +13,4 @@ __pycache__/
 config.py
 
 crash_log.old.txt
+sheets_service_account.json
