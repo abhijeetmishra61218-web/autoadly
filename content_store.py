@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import time
 
 def normalize_phone(raw: str) -> str:
     """Strips spaces/dashes/parens/etc out of a phone number, keeping a single
@@ -60,8 +61,13 @@ def _load(path, default):
                 _save(path, default)
                 return json.loads(json.dumps(default))
             return json.loads(content)
-    except json.JSONDecodeError:
-        _save(path, default)
+    except json.JSONDecodeError as e:
+        corrupt_path = path + f".corrupt-{int(time.time())}"
+        try:
+            os.rename(path, corrupt_path)
+            print(f"[content_store] CORRUPTED JSON in {path}: {e}. Preserved as {corrupt_path} for recovery - NOT overwritten. Returning an empty in-memory default for this read only.")
+        except Exception as rename_err:
+            print(f"[content_store] CORRUPTED JSON in {path}: {e}. Could not preserve a copy ({rename_err}) - file left as-is, NOT overwritten.")
         return json.loads(json.dumps(default))
 
 def _save(path, data):
