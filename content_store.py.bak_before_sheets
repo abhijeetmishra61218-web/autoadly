@@ -4,8 +4,6 @@ import os
 import re
 import time
 
-import sheets_store
-
 def normalize_phone(raw: str) -> str:
     """Strips spaces/dashes/parens/etc out of a phone number, keeping a single
        leading '+' if present."""
@@ -135,36 +133,20 @@ def add_cofounder(user_id):
 
 # ---- users ----
 def register_user(user_id, username=None):
-    try:
-        users = sheets_store.load_users()
-        users[str(user_id)] = {"username": (username or "").lower().lstrip("@")}
-        sheets_store.save_users(users)
-        _save(USERS_FILE, users)  # local mirror, used only if Sheets is unreachable
-        return
-    except sheets_store.SheetsUnavailableError as e:
-        print(f"[content_store] Sheets unavailable for register_user ({e}) - using local JSON.")
     users = _load(USERS_FILE, {})
     users[str(user_id)] = {"username": (username or "").lower().lstrip("@")}
     _save(USERS_FILE, users)
 
 def get_uid_by_username(username):
     username = username.lower().lstrip("@")
-    try:
-        users = sheets_store.load_users()
-    except sheets_store.SheetsUnavailableError as e:
-        print(f"[content_store] Sheets unavailable for get_uid_by_username ({e}) - using local JSON.")
-        users = _load(USERS_FILE, {})
+    users = _load(USERS_FILE, {})
     for uid, info in users.items():
         if info.get("username") == username:
             return int(uid)
     return None
 
 def get_username_by_uid(user_id):
-    try:
-        users = sheets_store.load_users()
-    except sheets_store.SheetsUnavailableError as e:
-        print(f"[content_store] Sheets unavailable for get_username_by_uid ({e}) - using local JSON.")
-        users = _load(USERS_FILE, {})
+    users = _load(USERS_FILE, {})
     info = users.get(str(user_id))
     username = info.get("username") if info else None
     return username or None
@@ -219,19 +201,9 @@ def update_plan(plan_id, **fields):
 SUBSCRIPTIONS_FILE = os.path.join(BASE_DIR, "subscriptions.json")
 
 def load_subscriptions():
-    try:
-        return sheets_store.load_subscriptions()
-    except sheets_store.SheetsUnavailableError as e:
-        print(f"[content_store] Sheets unavailable for load_subscriptions ({e}) - using local JSON.")
-        return _load(SUBSCRIPTIONS_FILE, {})
+    return _load(SUBSCRIPTIONS_FILE, {})
 
 def save_subscriptions(data):
-    try:
-        sheets_store.save_subscriptions(data)
-        _save(SUBSCRIPTIONS_FILE, data)  # local mirror, used only if Sheets is unreachable
-        return
-    except sheets_store.SheetsUnavailableError as e:
-        print(f"[content_store] Sheets unavailable for save_subscriptions ({e}) - using local JSON.")
     _save(SUBSCRIPTIONS_FILE, data)
 
 def get_subscription(user_id):
@@ -407,11 +379,7 @@ def set_list_emoji(list_name, emoji_id):
 BANNED_FILE = os.path.join(BASE_DIR, "banned.json")
 
 def load_all_users():
-    try:
-        return sheets_store.load_users()
-    except sheets_store.SheetsUnavailableError as e:
-        print(f"[content_store] Sheets unavailable for load_all_users ({e}) - using local JSON.")
-        return _load(USERS_FILE, {})
+    return _load(USERS_FILE, {})
 
 def load_banned():
     return _load(BANNED_FILE, {})
