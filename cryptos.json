@@ -82,7 +82,7 @@
       "id": "usdc_erc20",
       "name": "USDC(Erc20)",
       "chain": "erc20_usdc",
-      "address": "0xA8c89EE85B2EDf60dffe226B4454B6ceCED47d61",
+      "address": "0x9C0B8eB074376517c872Cbd35B513768839eF95c",
       "coingecko_id": "usd-coin",
       "decimals": 6,
       "enabled": true,
