@@ -1,4 +1,5 @@
 import asyncio
+import signal
 from aiogram import Bot, Dispatcher
 from config import BOT_TOKEN
 from handlers import router
@@ -48,6 +49,27 @@ async def main():
     asyncio.create_task(restriction_monitor.daily_recheck_loop())
     asyncio.create_task(engine.start_engine())
     asyncio.create_task(account_setup.resume_unsynced_joins())
+
+    shutdown_event = asyncio.Event()
+
+    def _on_shutdown_signal():
+        shutdown_event.set()
+
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(sig, _on_shutdown_signal)
+
+    async def _shutdown_watcher():
+        await shutdown_event.wait()
+        print("[main] Shutdown signal received - sending best-effort ad_bot.db backup before exit...")
+        try:
+            import backup_system as _bs
+            await _bs.send_db_backup(triggered_by="shutdown (auto)")
+        except Exception as e:
+            print(f"[main] Shutdown backup failed: {e}")
+        await dp.stop_polling()
+
+    asyncio.create_task(_shutdown_watcher())
 
     await dp.start_polling(bot)
 

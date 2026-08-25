@@ -1069,6 +1069,16 @@ async def cmd_free_accounts(message: Message):
         lines.append(f"ID {r['id']} — {r['phone']}")
     await message.reply("\n".join(lines), parse_mode="HTML")
 
+@router.message(Command("imp"))
+async def cmd_imp(message: Message):
+    if not store.is_admin(message.from_user.id):
+        return
+    await message.reply("Zipping ad_bot.db and sending it your way...")
+    import backup_system
+    ok = await backup_system.send_db_backup(triggered_by="manual /imp")
+    if not ok:
+        await message.reply("Backup zip was created but sending it failed - check the logs for the reason.")
+
 @router.message(Command("banacc"))
 async def cmd_banned_accounts(message: Message):
     """Owner-only: lists every Ad Bot Account sitting in the 'banned' bucket —
