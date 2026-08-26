@@ -1079,6 +1079,39 @@ async def cmd_imp(message: Message):
     if not ok:
         await message.reply("Backup zip was created but sending it failed - check the logs for the reason.")
 
+@router.message(Command("alog"))
+async def cmd_alog(message: Message):
+    if not store.is_admin(message.from_user.id):
+        return
+    await message.reply("Pulling the last 6h of post logs from Sheets...")
+    import asyncio as _asyncio
+    import sheets_store
+    try:
+        rows = await _asyncio.get_running_loop().run_in_executor(None, sheets_store.get_post_logs, 6)
+    except sheets_store.SheetsUnavailableError as e:
+        await message.reply(f"Sheets unavailable right now: {e}")
+        return
+    if not rows:
+        await message.reply("No post activity in the last 6 hours.")
+        return
+    import time as _time
+    lines = [f"AutoAdly post logs - last 6h ({len(rows)} rows)", ""]
+    for r in rows:
+        ts = _time.strftime("%Y-%m-%d %H:%M:%S", _time.localtime(r["posted_at"]))
+        lines.append(f"{ts} | account={r['ad_account_id']} | {r.get('chat_username') or 'marketplace_id='+str(r['marketplace_id'])} | {r.get('message_link') or ''}")
+    log_text = "\n".join(lines)
+    path = f"/tmp/alog_{int(_time.time())}.txt"
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(log_text)
+    from aiogram.types import FSInputFile
+    await message.reply_document(FSInputFile(path), caption=f"{len(rows)} post log rows, last 6h.")
+    import os as _os
+    try:
+        _os.remove(path)
+    except Exception:
+        pass
+
+
 @router.message(Command("banacc"))
 async def cmd_banned_accounts(message: Message):
     """Owner-only: lists every Ad Bot Account sitting in the 'banned' bucket —

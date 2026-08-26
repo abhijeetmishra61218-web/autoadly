@@ -130,3 +130,64 @@ def save_subscriptions(data):
         ])
     ws.clear()
     ws.update(rows)
+
+
+# ---- Post logs (ad-posting activity, synced from ad_bot.db every 15 min) ----
+
+POST_LOGS_HEADER = ["posted_at", "ad_account_id", "marketplace_id", "chat_username", "message_link"]
+
+
+def append_post_logs(rows):
+    """rows: list of dicts with posted_at/ad_account_id/marketplace_id/chat_username/message_link."""
+    if not rows:
+        return
+    ws = _get_or_create_worksheet("PostLogs", POST_LOGS_HEADER)
+    values = [
+        [r.get("posted_at"), r.get("ad_account_id"), r.get("marketplace_id"),
+         r.get("chat_username") or "", r.get("message_link") or ""]
+        for r in rows
+    ]
+    ws.append_rows(values, value_input_option="RAW")
+
+
+def get_post_logs(since_hours=6):
+    """Rows from the last `since_hours`, newest first. Used by /alog."""
+    ws = _get_or_create_worksheet("PostLogs", POST_LOGS_HEADER)
+    rows = ws.get_all_records()
+    cutoff = time.time() - since_hours * 3600
+    out = []
+    for r in rows:
+        try:
+            posted_at = float(r.get("posted_at") or 0)
+        except (TypeError, ValueError):
+            continue
+        if posted_at >= cutoff:
+            out.append({
+                "posted_at": posted_at,
+                "ad_account_id": r.get("ad_account_id"),
+                "marketplace_id": r.get("marketplace_id"),
+                "chat_username": r.get("chat_username"),
+                "message_link": r.get("message_link"),
+            })
+    out.sort(key=lambda r: r["posted_at"], reverse=True)
+    return out
+
+
+def trim_post_logs(retention_hours):
+    """Rewrites the PostLogs tab keeping only rows within retention_hours -
+       run every 6h with retention_hours=7 so /alog's 6h window is always
+       fully covered even mid-trim, while the Sheet stays a bounded size."""
+    ws = _get_or_create_worksheet("PostLogs", POST_LOGS_HEADER)
+    rows = ws.get_all_records()
+    cutoff = time.time() - retention_hours * 3600
+    kept = []
+    for r in rows:
+        try:
+            posted_at = float(r.get("posted_at") or 0)
+        except (TypeError, ValueError):
+            continue
+        if posted_at >= cutoff:
+            kept.append([r.get("posted_at"), r.get("ad_account_id"), r.get("marketplace_id"),
+                         r.get("chat_username") or "", r.get("message_link") or ""])
+    ws.clear()
+    ws.update([POST_LOGS_HEADER] + kept)

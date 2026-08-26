@@ -788,3 +788,27 @@ async def get_occupied_ad_accounts():
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM ad_accounts WHERE status = 'occupied'")
         return await cursor.fetchall()
+
+
+async def get_post_logs_for_sync():
+    """All current post_logs rows (should be at most ~15 min of accumulation,
+       since the sync loop runs every 15 min and clears what it pushes),
+       joined with marketplace username for a readable Sheets export."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute('''
+            SELECT p.id, p.ad_account_id, p.marketplace_id, p.posted_at, p.message_link, m.chat_username
+            FROM post_logs p
+            LEFT JOIN marketplaces m ON m.id = p.marketplace_id
+            ORDER BY p.posted_at ASC
+        ''')
+        return await cursor.fetchall()
+
+
+async def delete_post_logs_by_ids(ids):
+    if not ids:
+        return
+    async with aiosqlite.connect(DB_PATH) as db:
+        placeholders = ",".join("?" for _ in ids)
+        await db.execute(f"DELETE FROM post_logs WHERE id IN ({placeholders})", list(ids))
+        await db.commit()

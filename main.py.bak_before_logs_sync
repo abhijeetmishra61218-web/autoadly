@@ -12,7 +12,6 @@ import ban_middleware
 import join_middleware
 import account_setup
 import backup_system
-import logs_sync
 import restriction_monitor
 import github_backup
 import subscription_expiry
@@ -46,8 +45,6 @@ async def main():
     dp.include_router(restriction_monitor.router)
 
     asyncio.create_task(backup_system.cleanup_loop())
-    asyncio.create_task(logs_sync.sync_loop())
-    asyncio.create_task(logs_sync.trim_loop())
     asyncio.create_task(github_backup.backup_loop())
     asyncio.create_task(subscription_expiry.expiry_loop())
     asyncio.create_task(restriction_monitor.daily_recheck_loop())
