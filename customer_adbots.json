@@ -17,7 +17,7 @@
     },
     {
       "name": "AutoAdlyAds",
-      "ad_account_id": null,
+      "ad_account_id": 25,
       "bio": "Premium Accounts & SM Expert | Services: @GetMyServices | @AutoAdlyBot",
       "photo_file_id": null,
       "cached_photo_path": "cached_slot_photos/7530034609_1.jpg"
@@ -143,6 +143,14 @@
       "name": "The cake group",
       "ad_account_id": 26,
       "bio": "The Cake group is TOP GEEKERS slingwhere you may come to get yarts and farts \n🛒and⛽️ iykyk…must verify your eligibility then we shall proceed with your order!!",
+      "photo_file_id": null
+    }
+  ],
+  "1309439491": [
+    {
+      "name": "Adbot #1",
+      "ad_account_id": 27,
+      "bio": null,
       "photo_file_id": null
     }
   ]
