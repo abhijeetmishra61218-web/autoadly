@@ -158,14 +158,22 @@ def register_user(user_id, username=None):
 
 def get_uid_by_username(username):
     username = username.lower().lstrip("@")
-    users = _load(USERS_FILE, {})
+    try:
+        users = sheets_store.load_users()
+    except sheets_store.SheetsUnavailableError as e:
+        print(f"[content_store] Sheets unavailable for get_uid_by_username ({e}) - using local JSON.")
+        users = _load(USERS_FILE, {})
     for uid, info in users.items():
         if info.get("username") == username:
             return int(uid)
     return None
 
 def get_username_by_uid(user_id):
-    users = _load(USERS_FILE, {})
+    try:
+        users = sheets_store.load_users()
+    except sheets_store.SheetsUnavailableError as e:
+        print(f"[content_store] Sheets unavailable for get_username_by_uid ({e}) - using local JSON.")
+        users = _load(USERS_FILE, {})
     info = users.get(str(user_id))
     username = info.get("username") if info else None
     return username or None
@@ -220,7 +228,11 @@ def update_plan(plan_id, **fields):
 SUBSCRIPTIONS_FILE = os.path.join(BASE_DIR, "subscriptions.json")
 
 def load_subscriptions():
-    return _load(SUBSCRIPTIONS_FILE, {})
+    try:
+        return sheets_store.load_subscriptions()
+    except sheets_store.SheetsUnavailableError as e:
+        print(f"[content_store] Sheets unavailable for load_subscriptions ({e}) - using local JSON.")
+        return _load(SUBSCRIPTIONS_FILE, {})
 
 def save_subscriptions(data):
     try:
@@ -404,7 +416,11 @@ def set_list_emoji(list_name, emoji_id):
 BANNED_FILE = os.path.join(BASE_DIR, "banned.json")
 
 def load_all_users():
-    return _load(USERS_FILE, {})
+    try:
+        return sheets_store.load_users()
+    except sheets_store.SheetsUnavailableError as e:
+        print(f"[content_store] Sheets unavailable for load_all_users ({e}) - using local JSON.")
+        return _load(USERS_FILE, {})
 
 def load_banned():
     return _load(BANNED_FILE, {})
