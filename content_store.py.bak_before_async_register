@@ -1,5 +1,4 @@
 # content_store.py
-import asyncio
 import json
 import os
 import re
@@ -136,25 +135,17 @@ def add_cofounder(user_id):
 
 # ---- users ----
 def register_user(user_id, username=None):
-    # Write locally first (fast, always succeeds) so the caller - and the
-    # user waiting on /start - never waits on a network round trip.
+    try:
+        users = sheets_store.load_users()
+        users[str(user_id)] = {"username": (username or "").lower().lstrip("@")}
+        sheets_store.save_users(users)
+        _save(USERS_FILE, users)  # local mirror, used only if Sheets is unreachable
+        return
+    except sheets_store.SheetsUnavailableError as e:
+        print(f"[content_store] Sheets unavailable for register_user ({e}) - using local JSON.")
     users = _load(USERS_FILE, {})
     users[str(user_id)] = {"username": (username or "").lower().lstrip("@")}
     _save(USERS_FILE, users)
-
-    def _sync_to_sheets():
-        try:
-            sheet_users = sheets_store.load_users()
-            sheet_users[str(user_id)] = {"username": (username or "").lower().lstrip("@")}
-            sheets_store.save_users(sheet_users)
-        except sheets_store.SheetsUnavailableError as e:
-            print(f"[content_store] Sheets unavailable for register_user ({e}) - local JSON already has this write; will sync next time Sheets is reachable.")
-
-    try:
-        loop = asyncio.get_running_loop()
-        loop.run_in_executor(None, _sync_to_sheets)  # background thread - never blocks the event loop or the caller
-    except RuntimeError:
-        _sync_to_sheets()  # no running loop (e.g. called from a sync script) - just do it inline
 
 def get_uid_by_username(username):
     username = username.lower().lstrip("@")
