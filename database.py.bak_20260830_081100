@@ -790,22 +790,18 @@ async def get_occupied_ad_accounts():
         return await cursor.fetchall()
 
 
-async def get_post_logs_for_sync(older_than_seconds=1200):
-    """post_logs rows older than `older_than_seconds` (default 20 min - a
-       5-minute safety buffer past /logs' own 15-minute display window, so a
-       customer checking /logs never sees a gap from rows being swept to
-       Sheets before they're done being useful locally), joined with
-       marketplace username for a readable Sheets export."""
-    cutoff = time.time() - older_than_seconds
+async def get_post_logs_for_sync():
+    """All current post_logs rows (should be at most ~15 min of accumulation,
+       since the sync loop runs every 15 min and clears what it pushes),
+       joined with marketplace username for a readable Sheets export."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute('''
             SELECT p.id, p.ad_account_id, p.marketplace_id, p.posted_at, p.message_link, m.chat_username
             FROM post_logs p
             LEFT JOIN marketplaces m ON m.id = p.marketplace_id
-            WHERE p.posted_at < ?
             ORDER BY p.posted_at ASC
-        ''', (cutoff,))
+        ''')
         return await cursor.fetchall()
 
 
