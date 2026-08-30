@@ -639,28 +639,7 @@ async def fulfill_replacement(user_id, index, new_account_id, ad_config, old_pro
     bio = slot.get("bio") or (old_profile.get("bio") if old_profile else None) or ""
 
     client = await engine.get_client(new_account_id)
-    name_bio_ok = await pu.update_name_bio(client, display_name, bio)
-    if not name_bio_ok:
-        # Telegram sometimes accepts the update but silently never applies it
-        # (soft-restricted accounts) - update_name_bio already detects this via
-        # its own re-fetch check, but the result used to be discarded here,
-        # so the old name would just sit there with no retry and no one told.
-        print(f"[fulfill_replacement] name/bio did not verify for account {new_account_id}, retrying once...")
-        name_bio_ok = await pu.update_name_bio(client, display_name, bio)
-        if not name_bio_ok:
-            try:
-                admins = store.load_admins()
-                owner_id = admins.get("owner_id")
-                if owner_id:
-                    await raw_api.send_message(
-                        owner_id,
-                        f"Heads up: account {new_account_id}'s name/bio update did not stick after 2 attempts "
-                        f"(likely a soft-restricted account silently ignoring profile changes) — "
-                        f"it may still show its old name. May need manual attention or a different account.",
-                        [],
-                    )
-            except Exception as e:
-                print(f"[fulfill_replacement] could not notify owner of name/bio failure: {e}")
+    await pu.update_name_bio(client, display_name, bio)
     await pu.update_username(client, await _buyer_username_base(user_id))
 
     photo_file_id = slot.get("photo_file_id")
