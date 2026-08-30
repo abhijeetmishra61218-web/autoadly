@@ -8,6 +8,7 @@ from aiogram.filters import Command
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError, PhoneNumberInvalidError
+import asyncio
 
 import content_store as store
 import database as db
@@ -24,6 +25,21 @@ ADD_PENDING = flow_state.FlowBucket("add_adbot")
 @router.message(Command("addadbot"))
 async def cmd_addadbot(message: Message):
     if not store.is_admin(message.from_user.id):
+        return
+    parts = message.text.split()
+    if len(parts) == 2 and parts[1].startswith("@"):
+        username = parts[1].lstrip("@")
+        target_uid = store.get_uid_by_username(username)
+        if not target_uid:
+            await message.reply(f"@{username} hasn't started the bot yet — can't reserve for them.")
+            return
+        store.set_addadbot_target(target_uid)
+        await message.reply(
+            f"Reserved — the next Ad Bot Account you add will go straight to @{username}, "
+            f"regardless of anyone else's queue position.\n\n"
+            f"Send the phone number (with country code) for the new Ad Bot Account.\n\nExample: +15551234567"
+        )
+        ADD_PENDING[message.from_user.id] = {"step": "await_phone"}
         return
     ADD_PENDING[message.from_user.id] = {"step": "await_phone"}
     await message.reply("Send the phone number (with country code) for the new Ad Bot Account.\n\nExample: +15551234567")
@@ -67,20 +83,7 @@ async def on_addadbot_text(message: Message):
             "phone_code_hash": sent.phone_code_hash,
         })
         ADD_PENDING[user_id] = pending
-        # Telegram doesn't always send an SMS. If this number already has an
-        # active session somewhere (another phone, Desktop, etc.), the code
-        # goes to that device's Telegram app instead - not SMS - and there's
-        # nothing on the sender's end that looks any different. Without this,
-        # someone waiting on an SMS that was never coming looks identical to
-        # a real delivery failure. sent.type tells us exactly which happened.
-        delivery = {
-            "SentCodeTypeApp": "the Telegram app on a device already logged into this number — check other logged-in sessions, not SMS",
-            "SentCodeTypeSms": "SMS",
-            "SentCodeTypeCall": "an automated phone call reading out the code",
-            "SentCodeTypeFlashCall": "a flash call — the code is the last digits of the incoming number",
-            "SentCodeTypeMissedCall": "a missed call — the code is the last digits of the incoming number",
-        }.get(type(sent.type).__name__, f"Telegram ({type(sent.type).__name__})")
-        await message.reply(f"Enter the OTP code sent via {delivery}.")
+        await message.reply("Enter the OTP code sent to that number.")
 
     elif step == "await_otp":
         client = pending["client"]
@@ -137,6 +140,33 @@ async def _finish_signin(message, user_id, client, phone, two_step_password=None
         await db.save_two_step_password(account_id, two_step_password)
 
     import content_store as _store
+
+    reserved_uid = _store.pop_addadbot_target()
+    if reserved_uid:
+        import myadbot
+        replacement_entry = _store.get_pending_replacement_for_user(reserved_uid)
+        if replacement_entry:
+            await db.mark_ad_account_status_no_fulfill(account_id, "occupied")
+            await myadbot.fulfill_replacement(reserved_uid, replacement_entry["index"], account_id, replacement_entry["ad_config"])
+            _store.remove_pending_replacement(reserved_uid, replacement_entry["index"])
+            await message.reply(f"Ad Bot Account added (ID: {account_id}) and immediately used to fulfill the reserved replacement for user {reserved_uid}.")
+        elif _store.get_pending_account_request(reserved_uid):
+            await db.mark_ad_account_status_no_fulfill(account_id, "occupied")
+            await myadbot._assign_account(reserved_uid, None, reserved_uid, account_id, send_new=True)
+            _store.remove_pending_account_request(reserved_uid)
+            await message.reply(f"Ad Bot Account added (ID: {account_id}) and immediately assigned to the reserved customer ({reserved_uid}).")
+        else:
+            await db.mark_ad_account_status_no_fulfill(account_id, "occupied")
+            await myadbot._assign_account(reserved_uid, None, reserved_uid, account_id, send_new=True)
+            await message.reply(
+                f"Ad Bot Account added (ID: {account_id}) and immediately assigned to the reserved customer "
+                f"({reserved_uid}) — no queued request/replacement was pending, assigned directly into their next open slot."
+            )
+        await message.reply("Joining it to all existing marketplaces in the background — this may take a while.")
+        import asyncio
+        asyncio.create_task(_join_new_account_to_all_marketplaces(account_id))
+        return
+
     kind, uid, payload = _store.get_oldest_pending_fulfillment()
 
     if kind == "replacement":
@@ -168,7 +198,25 @@ async def _finish_signin(message, user_id, client, phone, two_step_password=None
 
 async def _join_new_account_to_all_marketplaces(account_id):
     try:
-        await _do_join_new_account(account_id)
+        await asyncio.wait_for(_do_join_new_account(account_id), timeout=600)
+    except asyncio.TimeoutError:
+        # A fresh client.connect() (separate from engine.py's cached client pool)
+        # can get caught in the same connection instability seen system-wide
+        # and simply hang forever — no exception, no log line, no notification.
+        # A bare try/except only catches real exceptions, not hangs, so this
+        # needed an explicit timeout to fail loudly instead of hanging silently.
+        print(f"[account_setup] Auto-join for account {account_id} TIMED OUT after 10 minutes — "
+              f"likely a stuck/unstable connection. Account left as-is; re-run its join manually once connectivity is confirmed.")
+        admins = store.load_admins()
+        owner_id = admins.get("owner_id")
+        if owner_id:
+            import raw_api
+            await raw_api.send_message(
+                owner_id,
+                f"⚠️ Auto-join for account {account_id} timed out after 10 minutes (likely a stuck connection). "
+                f"It has not joined any marketplaces yet — check its connectivity and retry.",
+                []
+            )
     except Exception as e:
         print(f"[account_setup] Auto-join for account {account_id} failed: {e}")
 
