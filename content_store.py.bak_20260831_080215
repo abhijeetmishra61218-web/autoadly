@@ -61,16 +61,7 @@ def _load(path, default):
         with open(path, "r", encoding="utf-8") as f:
             content = f.read().strip()
             if not content:
-                # NEVER silently overwrite here - an empty read almost always
-                # means we caught another writer mid-save (see the atomic
-                # _save() below - this used to be possible before the fix,
-                # and _load() reacting by immediately resetting the file to
-                # {} is exactly what silently destroyed users.json more than
-                # once). Just return the default for THIS read only, and
-                # leave the file on disk completely untouched so whatever
-                # write is really in flight (or a real actual empty file)
-                # isn't clobbered.
-                print(f"[content_store] {path} read as empty - NOT overwriting, returning in-memory default for this read only. If this persists, investigate concurrent writers.")
+                _save(path, default)
                 return json.loads(json.dumps(default))
             return json.loads(content)
     except json.JSONDecodeError as e:
@@ -83,18 +74,8 @@ def _load(path, default):
         return json.loads(json.dumps(default))
 
 def _save(path, data):
-    # Atomic write: build the full new content in a temp file first, then
-    # os.replace() it over the real path in one atomic filesystem operation.
-    # This is the actual root-cause fix for users.json repeatedly losing
-    # data - the old version opened the real path directly in "w" mode,
-    # which truncates it to 0 bytes BEFORE writing the new content, leaving
-    # a window where any concurrent reader sees a genuinely empty file.
-    tmp_path = path + f".tmp-{os.getpid()}"
-    with open(tmp_path, "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp_path, path)
 
 # ---- plans ----
 def load_plans():
