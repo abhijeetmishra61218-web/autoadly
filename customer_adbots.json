@@ -148,10 +148,11 @@
   ],
   "1309439491": [
     {
-      "name": "Adbot #1",
+      "name": "Normie (aged)",
       "ad_account_id": 30,
-      "bio": null,
-      "photo_file_id": null
+      "bio": "Work until \"I can’t afford it\" becomes a sentence you no longer have t",
+      "photo_file_id": null,
+      "cached_photo_path": "cached_slot_photos/1309439491_0.jpg"
     }
   ]
 }
