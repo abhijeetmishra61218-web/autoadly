@@ -157,32 +157,72 @@
   ],
   "6580245354": [
     {
-      "name": "Adbot #1",
+      "name": "Autoadly @AutoAdlyAds",
       "ad_account_id": 31,
-      "bio": null,
-      "photo_file_id": null
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
+      "photo_file_id": null,
+      "cached_photo_path": "cached_slot_photos/6580245354_0.jpg"
     },
     {
-      "name": "Adbot #2",
+      "name": "Autoadly @AutoAdlyAds",
       "ad_account_id": 32,
-      "bio": null,
-      "photo_file_id": null
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
+      "photo_file_id": null,
+      "cached_photo_path": "cached_slot_photos/6580245354_1.jpg"
     },
     {
-      "name": "Adbot #3",
+      "name": "Autoadly @AutoAdlyAds",
       "ad_account_id": 33,
-      "bio": null,
-      "photo_file_id": null
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
+      "photo_file_id": null,
+      "cached_photo_path": "cached_slot_photos/6580245354_2.jpg"
+    },
+    {
+      "name": "Autoadly @AutoAdlyAds",
+      "ad_account_id": 34,
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
+      "photo_file_id": null,
+      "cached_photo_path": "cached_slot_photos/6580245354_3.jpg"
+    },
+    {
+      "name": "Autoadly @AutoAdlyAds",
+      "ad_account_id": 35,
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
+      "photo_file_id": null,
+      "cached_photo_path": "cached_slot_photos/6580245354_4.jpg"
+    }
+  ],
+  "7913817297": [
+    {
+      "name": "Autoadly @AutoAdlyAds",
+      "ad_account_id": 36,
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
+      "photo_file_id": null,
+      "cached_photo_path": "cached_slot_photos/7913817297_0.jpg"
+    },
+    {
+      "name": "Autoadly @AutoAdlyAds",
+      "ad_account_id": 37,
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
+      "photo_file_id": null,
+      "cached_photo_path": "cached_slot_photos/7913817297_1.jpg"
+    },
+    {
+      "name": "Autoadly @AutoAdlyAds",
+      "ad_account_id": 38,
+      "bio": "Purchase Your AdBot Instantly via @AutoAdlyBot",
+      "photo_file_id": null,
+      "cached_photo_path": "cached_slot_photos/7913817297_2.jpg"
     },
     {
       "name": "Adbot #4",
-      "ad_account_id": 34,
+      "ad_account_id": 39,
       "bio": null,
       "photo_file_id": null
     },
     {
       "name": "Adbot #5",
-      "ad_account_id": 35,
+      "ad_account_id": 40,
       "bio": null,
       "photo_file_id": null
     }

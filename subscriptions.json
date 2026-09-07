@@ -111,5 +111,13 @@
     "months": 1,
     "notified_soon": false,
     "reclaimed": false
+  },
+  "7913817297": {
+    "plan_id": "elite",
+    "purchase_date": 1788802988.0059984,
+    "expiry": 1875202988.0059984,
+    "months": 1,
+    "notified_soon": false,
+    "reclaimed": false
   }
 }
