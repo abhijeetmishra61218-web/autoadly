@@ -154,5 +154,37 @@
       "photo_file_id": null,
       "cached_photo_path": "cached_slot_photos/1309439491_0.jpg"
     }
+  ],
+  "6580245354": [
+    {
+      "name": "Adbot #1",
+      "ad_account_id": 31,
+      "bio": null,
+      "photo_file_id": null
+    },
+    {
+      "name": "Adbot #2",
+      "ad_account_id": 32,
+      "bio": null,
+      "photo_file_id": null
+    },
+    {
+      "name": "Adbot #3",
+      "ad_account_id": 33,
+      "bio": null,
+      "photo_file_id": null
+    },
+    {
+      "name": "Adbot #4",
+      "ad_account_id": 34,
+      "bio": null,
+      "photo_file_id": null
+    },
+    {
+      "name": "Adbot #5",
+      "ad_account_id": 35,
+      "bio": null,
+      "photo_file_id": null
+    }
   ]
 }
