@@ -1,11 +1,11 @@
 {
   "7859617687": {
-    "plan_id": "starter",
-    "purchase_date": 1787745359.7935507,
-    "expiry": 1788877838.8919394,
+    "plan_id": "elite",
+    "purchase_date": 1788878479.1594493,
+    "expiry": 1875278479.1594493,
     "months": 1,
     "notified_soon": false,
-    "reclaimed": true
+    "reclaimed": false
   },
   "6684244590": {
     "plan_id": "elite",
