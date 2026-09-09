@@ -211,19 +211,6 @@ _pace_counters = {}  # ad_id -> number of posts made, drives the interval rotati
 async def run_advertisement_loop(ad):
     """One continuous cycle for a single advertisement. Runs until status changes to 'stopped'."""
     ad_id = ad["id"]
-
-    # Stagger BEFORE connecting, not after. start_engine() spawns every active
-    # ad's task via asyncio.gather() at once, and get_client() is the very
-    # first thing each one used to do — so every account opened a fresh raw
-    # MTProto socket to Telegram within the same instant on every restart.
-    # With 15-30+ accounts, that's a real connection burst, and Telegram's
-    # DCs were resetting connections in response (seen as a flood of
-    # "Server closed the connection: 0 bytes read..." immediately after every
-    # restart). Waiting out the random delay first spreads the actual
-    # connection attempts across the full 5-90s window instead.
-    startup_delay = random.uniform(5, 90)
-    await asyncio.sleep(startup_delay)
-
     client = await get_client(ad["ad_account_id"])
     all_marketplaces = await db.get_list_marketplaces(ad["marketplace_list_id"])
     if not all_marketplaces:
@@ -242,6 +229,9 @@ async def run_advertisement_loop(ad):
     pace = _pace_counters.setdefault(ad_id, 0)
 
     await db.mark_loop_started(ad["ad_account_id"])
+
+    startup_delay = random.uniform(5, 90)
+    await asyncio.sleep(startup_delay)
 
     try:
         while True:
