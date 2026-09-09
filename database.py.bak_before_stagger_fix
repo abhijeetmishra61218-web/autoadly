@@ -605,32 +605,9 @@ async def create_advertisement(ad_account_id: int, source_chat_id: int, source_m
         # near-simultaneous calls (e.g. a fast double-tap) both see "no active
         # ad" and both create one, leaving two posting loops running in parallel.
         await db.execute("UPDATE advertisements SET status = 'stopped' WHERE ad_account_id = ? AND status = 'active'", (ad_account_id,))
-
-        # Every ad walks its marketplace list in the exact same order, advancing
-        # by 1 position per cycle through the same [60,120,180,240] interval
-        # sequence. Starting everyone at index 0 means any two accounts sharing
-        # a list visit marketplace #k at times that differ by a CONSTANT offset
-        # (whatever their start times happened to differ by) — for the whole
-        # lifetime of both ads. If that constant offset is under engine.py's
-        # 90s cross-account cooldown (MIN_GLOBAL_MARKETPLACE_GAP_SECONDS), the
-        # later-started account is permanently a few seconds behind the earlier
-        # one at every single marketplace and NEVER wins the cooldown — not
-        # intermittently, forever. This is what caused "only the first adbot
-        # ever posts" when a customer sets up several adbots on the same list
-        # in one session. Fix: stagger each account's starting position based
-        # on the account id itself, so accounts sharing a list aren't walking
-        # it in lockstep. 2039 is just an arbitrary prime picked to spread
-        # small sequential ad_account_ids across typical list lengths.
-        list_len_cursor = await db.execute(
-            "SELECT COUNT(*) FROM marketplace_list_items WHERE list_id = ?", (marketplace_list_id,)
-        )
-        row = await list_len_cursor.fetchone()
-        list_len = row[0] if row else 0
-        initial_index = (ad_account_id * 2039) % list_len if list_len else 0
-
         cursor = await db.execute(
-            "INSERT INTO advertisements (ad_account_id, source_chat_id, source_message_id, category, marketplace_list_id, status, current_index, source_username) VALUES (?, ?, ?, ?, ?, 'active', ?, ?)",
-            (ad_account_id, source_chat_id, source_message_id, category, marketplace_list_id, initial_index, source_username)
+            "INSERT INTO advertisements (ad_account_id, source_chat_id, source_message_id, category, marketplace_list_id, status, current_index, source_username) VALUES (?, ?, ?, ?, ?, 'active', 0, ?)",
+            (ad_account_id, source_chat_id, source_message_id, category, marketplace_list_id, source_username)
         )
         await db.commit()
         return cursor.lastrowid
