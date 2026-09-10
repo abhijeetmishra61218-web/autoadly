@@ -253,5 +253,13 @@
       "photo_file_id": null,
       "cached_photo_path": "cached_slot_photos/7913817297_4.jpg"
     }
+  ],
+  "6578079322": [
+    {
+      "name": "Adbot #1",
+      "ad_account_id": 47,
+      "bio": null,
+      "photo_file_id": null
+    }
   ]
 }
