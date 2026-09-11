@@ -45,7 +45,7 @@
     "expiry": 1789361287.116374,
     "months": null,
     "days": 30,
-    "notified_soon": false,
+    "notified_soon": true,
     "reclaimed": false
   },
   "6232314773": {
