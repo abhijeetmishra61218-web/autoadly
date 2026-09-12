@@ -1,10 +1,10 @@
 """
-AutoAdly - Requires users to join @AutoAdly before using the bot.
+AutoAdly - Requires users to join @AutoAdlyAds before using the bot.
 """
 from aiogram import BaseMiddleware
 from aiogram.types import Message, CallbackQuery
 
-CHANNEL_USERNAME = "@AutoAdly"
+CHANNEL_USERNAME = "@AutoAdlyAds"
 
 class JoinCheckMiddleware(BaseMiddleware):
     async def __call__(self, handler, event, data):
