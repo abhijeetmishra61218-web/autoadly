@@ -46,7 +46,7 @@
     "months": null,
     "days": 30,
     "notified_soon": true,
-    "reclaimed": false
+    "reclaimed": true
   },
   "6232314773": {
     "plan_id": "starter",
