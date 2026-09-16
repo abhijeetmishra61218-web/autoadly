@@ -85,7 +85,7 @@
     "purchase_date": 1787240556.101002,
     "expiry": 1789832556.101002,
     "months": 1,
-    "notified_soon": false,
+    "notified_soon": true,
     "reclaimed": false
   },
   "2106374636": {
