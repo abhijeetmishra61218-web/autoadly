@@ -78,7 +78,7 @@
     "expiry": 1789689600.0,
     "months": 1,
     "notified_soon": true,
-    "reclaimed": false
+    "reclaimed": true
   },
   "8607187600": {
     "plan_id": "standard",
